@@ -1,0 +1,6 @@
+function Col =  generate_col_struct(ColCell,varargin)
+% generate the Col struct from cell 
+
+
+
+end

@@ -1,4 +1,4 @@
-function [GAIAAstCat, ComData]= compare_astrometry_gaia(astcat,matchdata,varargin)
+function [GAIAAstCat, ComData, FlagGAIA]= compare_astrometry_gaia(astcat,matchdata,varargin)
 %{
 Run the pipeline to comapre the pm and the location of the object to the
 measures astrometry of GAIA
@@ -17,7 +17,7 @@ InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 
 JD2yr=1/365.25;
-JD0=2451545; %jd of 1.1.2000
+JD2000=2451545; %jd of 1.1.2000
 RAD=pi/180;
 
 
@@ -29,7 +29,7 @@ for i=1:length(astcat)
 end                                                 
 
 
-JD=matchdata.JD-JD0;
+JD=matchdata.JD-JD2000;
 GAIAAstCat= Asmtry.compare_cat(matchdata);
 FlagGAIA = ~isnan(GAIAAstCat.Cat(:,GAIAAstCat.Col.RA));
 GAIAAstCat.Cat = GAIAAstCat.Cat (FlagGAIA ,:);
@@ -37,14 +37,41 @@ RA=matchdata.ALPHAWIN_J2000(FlagGAIA,:);
 Dec=matchdata.DELTAWIN_J2000(FlagGAIA,:);
 
 Nobject=length(RA(:,1));
+RAfit = [];
+Decfit = [];
 
+RAlscovfit = zeros(Nobject,2);
+Declscovfit = zeros(Nobject,2);
+
+RAfitclip =zeros(Nobject,2);
+Decfitclip = zeros(Nobject,2);
 for ObjectInd = 1:Nobject
     
     JD(ObjectInd,:)=JD(ObjectInd,:)*JD2yr-15.5;
-    CondForFit=~(isnan(RA(ObjectInd,:))) ;
-    w=1./astormetryrms(CondForFit);
+    CondForFit=~(isnan(RA(ObjectInd,:)));
+    w=1./(astormetryrms(CondForFit)).^2;
     RAfit(ObjectInd).fit=fit(JD(ObjectInd,CondForFit)' , (RA(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
     Decfit(ObjectInd).fit=fit(JD(ObjectInd,CondForFit)' , (Dec(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
+    
+    H = [ones(size(RA(ObjectInd,CondForFit)')) JD(ObjectInd,CondForFit)'];
+    
+    RAlscovfit(ObjectInd,:) = (lscov(H,RA(ObjectInd,CondForFit)',w))';
+    Declscovfit(ObjectInd,:) = (lscov(H,Dec(ObjectInd,CondForFit)',w))';
+    
+    ModelRA  = H * RAlscovfit(ObjectInd,:)';
+    ModelDec  = H * Declscovfit(ObjectInd,:)';
+    
+    RAdev= abs( ModelRA- RA(ObjectInd,CondForFit)');
+    Decdev= abs( ModelRA- Dec(ObjectInd,CondForFit)');
+    
+    RASigmaClipingFlag  = stat.sigmaclip(RAdev,4);
+    DecSigmaClipingFlag = stat.sigmaclip(Decdev,4);
+    HsigRA = H(RASigmaClipingFlag,:);
+    HsigDec = H(DecSigmaClipingFlag,:);
+    RAclip= RA(ObjectInd,CondForFit)';
+    RAclip= RAclip(RASigmaClipingFlag);
+    
+    RAfitclip(ObjectInd,:)  = lscov(HsigRA,RAclip,w(RASigmaClipingFlag));
     
     if strcmp(InPar.Units,'deg')
         OffRA=(RA(ObjectInd,CondForFit)-nanmean(RA(ObjectInd,CondForFit))).*cos(Dec(ObjectInd,CondForFit)./RAD);
@@ -55,16 +82,19 @@ for ObjectInd = 1:Nobject
         OffDec=Dec(ObjectInd,CondForFit)-nanmean(Dec(ObjectInd,CondForFit));
     end
     
-    PMfit(ObjectInd)=Util.fit.fit_pm_parallax(matchdata.JD(ObjectInd,CondForFit)',OffRA',OffDec'...
+    PMfit(ObjectInd)=Asmtry.fit_pm_parallax(matchdata.JD(ObjectInd,CondForFit)',OffRA',OffDec'...
                                         ,'ErrRA',astormetryrms(CondForFit),'ErrDec',astormetryrms(CondForFit),...
-                                        'RA',(RA(ObjectInd,CondForFit))','Dec',(Dec(ObjectInd,CondForFit))');
+                                        'RA',(RA(ObjectInd,CondForFit))','Dec',(Dec(ObjectInd,CondForFit))',...
+                                        'GivenPlx',GAIAAstCat.Cat(ObjectInd,GAIAAstCat.Col.Plx),'Plx_is_Given',true,...
+                                        'RefEpoch', JD2000 + 15.5/JD2yr );
     
 end
 
 
 ComData.RAfit = RAfit;
 ComData.Decfit = Decfit;
-ComData.PMfit= PMfit;
+ComData.RAclipfit = RAfitclip;
+ComData.ParallaxFit= PMfit;
 
 
 %{
