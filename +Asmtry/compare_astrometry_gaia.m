@@ -73,6 +73,9 @@ for ObjectInd = 1:Nobject
     
     RAfitclip(ObjectInd,:)  = lscov(HsigRA,RAclip,w(RASigmaClipingFlag));
     
+    
+    % Calculate the Offset from the mean position, this will be used to the
+    % PM and plx fit
     if strcmp(InPar.Units,'deg')
         OffRA=(RA(ObjectInd,CondForFit)-nanmean(RA(ObjectInd,CondForFit))).*cos(Dec(ObjectInd,CondForFit)./RAD);
         OffDec=Dec(ObjectInd,CondForFit)-nanmean(Dec(ObjectInd,CondForFit));
@@ -82,12 +85,14 @@ for ObjectInd = 1:Nobject
         OffDec=Dec(ObjectInd,CondForFit)-nanmean(Dec(ObjectInd,CondForFit));
     end
     
+    % fit for proper motion and position with a given parallax by GAIA
     PMfit(ObjectInd)=Asmtry.fit_pm_parallax(matchdata.JD(ObjectInd,CondForFit)',OffRA',OffDec'...
                                         ,'ErrRA',astormetryrms(CondForFit),'ErrDec',astormetryrms(CondForFit),...
-                                        'RA',(RA(ObjectInd,CondForFit))','Dec',(Dec(ObjectInd,CondForFit))',...
+                                        'RA',(nanmean(RA(ObjectInd,CondForFit))),'Dec',nanmean(Dec(ObjectInd,CondForFit)),...
                                         'GivenPlx',GAIAAstCat.Cat(ObjectInd,GAIAAstCat.Col.Plx),'Plx_is_Given',true,...
                                         'RefEpoch', JD2000 + 15.5/JD2yr );
-    
+    PMfit(ObjectInd).Par(1) = PMfit(ObjectInd).Par(1) + (nanmean(RA(ObjectInd,CondForFit)));
+    PMfit(ObjectInd).Par(3) = PMfit(ObjectInd).Par(3) + (nanmean(Dec(ObjectInd,CondForFit)));
 end
 
 

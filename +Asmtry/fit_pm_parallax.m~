@@ -35,12 +35,8 @@ function [ResPMP]=fit_pm_parallax(JD,OffRA,OffDec,varargin)
 %            'ModelJD' - If a list of JD is provided than will add to
 %                    ouput the model calculated at these JD.
 %                    Default is empty matrix.
-%            'Plx_is_Given' - a flag for using external parallax
-%                    measurement
-%            'GivenPlx'- the external value of the parallax (e.g GAIA meas)
 %            'RefEpoch'- the time reference that used to fit the free
-%                    parameter
-
+%            paramet
 % Output : - Best fit parameters:
 %            [best OffsetRA (J2000),
 %             best PM RA [in time units]
@@ -78,7 +74,7 @@ if (isempty(InPar.Dec))
     Dec = OffDec;
 end
 
-JDref= InPar.RefEpoch;   % (J2000.0 is deafult)
+JDref= InPar.RefEpoch;   % (J2000.0)
 
 FlagNN = ~isnan(JD) & ~isnan(OffRA(:,1)) & ~isnan(OffDec(:,1)); % & ~isnan(RA) & ~isnan(Dec);
 JD     = JD(FlagNN);
@@ -137,11 +133,7 @@ end
 
 % design matrix
 H = [[Ha, zeros(Nobs,2); zeros(Nobs,2), Hd], Hp];
-if (InPar.Plx_is_Given)
-    Y = [Ya; Yd] - InPar.GivenPlx/1000/3600/180*pi * [(X.*sin(RA_t) - Y.*cos(RA_t)); (X.*cos(RA_t).*sin(Dec_t) + Y.*sin(RA_t).*sin(Dec_t) - Z.*cos(Dec_t))];
-else
-    Y = [Ya; Yd];
-end
+Y = [Ya; Yd] - InPar.GivenPlx/1000/3600/180*pi * [(X.*sin(RA_t) - Y.*cos(RA_t)); (X.*cos(RA_t).*sin(Dec_t) + Y.*sin(RA_t).*sin(Dec_t) - Z.*cos(Dec_t))];
 Ye= [Yae;Yde];
 Na = length(Ya);
 Nd = length(Yd);
