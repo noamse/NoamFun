@@ -1,5 +1,5 @@
 function [MeanEpochLTC,MeanEpoch,MeanResAL,MeanResAC,MeanScanPA,Lat,Long,distance] = readAstroidAstCat(Index,GAIADR2sso_obs,GAIADR2sso_orbit,GAIADR2sso_orbitres)
-cd('/home/noamse/astro/binary_asteroid/horizon2/data/AsteroidCat') 
+oldFolder = cd('/home/noamse/astro/binary_asteroid/horizon2/data/AsteroidCat') ;
 A= dir('*.mat'); 
 FileName={A(:).name};  
 AsteroidNumber=Index;
@@ -92,5 +92,5 @@ Long=Long*pi/180;
 distance = interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.Delta),MeanEpoch);
 MeanScanPA= MeanScanPA*pi/180;
 
-!cd -
+cd(oldFolder)
 end

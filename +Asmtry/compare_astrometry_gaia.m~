@@ -11,26 +11,32 @@ input:
 
 
 %}
-
+DefV.use_rrms=true;
 DefV.Units = 'rad';
+DefV.UsePlxFit=true;
+DefV.Nsigma=5;
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 
 JD2yr=1/365.25;
-JD0=2451545; %jd of 1.1.2000
+JD2000=2451545; %jd of 1.1.2000
 RAD=pi/180;
 
 
 
 ft = fittype('poly1');
 
-for i=1:length(astcat)                         
-    astormetryrms(i)=   astcat(i).UserData.R.rrmsN;
+for i=1:length(astcat)  
+    if InPar.use_rrms
+        astormetryrms(i)=   astcat(i).UserData.R.rrmsN;
+    else
+        astormetryrms(i) = 1;
+    end
 end                                                 
 
 
-JD=matchdata.JD-JD0;
-GAIAAstCat= Asmtry.compare_cat(matchdata);
+JD=matchdata.JD-JD2000;
+GAIAAstCat= Asmtry.compare_cat(matchdata,'Units',InPar.Units);
 FlagGAIA = ~isnan(GAIAAstCat.Cat(:,GAIAAstCat.Col.RA));
 GAIAAstCat.Cat = GAIAAstCat.Cat (FlagGAIA ,:);
 RA=matchdata.ALPHAWIN_J2000(FlagGAIA,:);
@@ -39,21 +45,29 @@ Dec=matchdata.DELTAWIN_J2000(FlagGAIA,:);
 Nobject=length(RA(:,1));
 RAfit = [];
 Decfit = [];
-
+RAGOF=[];
+DecGOF=[];
 RAlscovfit = zeros(Nobject,2);
 Declscovfit = zeros(Nobject,2);
 
 RAfitclip =zeros(Nobject,2);
 Decfitclip = zeros(Nobject,2);
+%RAfitclip =zeros(Nobject,3);
+%Decfitclip = zeros(Nobject,3);
 for ObjectInd = 1:Nobject
-    
+    ObjectInd
     JD(ObjectInd,:)=JD(ObjectInd,:)*JD2yr-15.5;
     CondForFit=~(isnan(RA(ObjectInd,:)));
     w=1./(astormetryrms(CondForFit)).^2;
-    RAfit(ObjectInd).fit=fit(JD(ObjectInd,CondForFit)' , (RA(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
-    Decfit(ObjectInd).fit=fit(JD(ObjectInd,CondForFit)' , (Dec(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
+    [rafitst,ragof]=fit(JD(ObjectInd,CondForFit)' , (RA(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
+    RAfit(ObjectInd).fit=rafitst;
+    RAGOF(ObjectInd).gof= ragof;
+    [decfitst,decgof]=fit(JD(ObjectInd,CondForFit)' , (Dec(ObjectInd,CondForFit))'  ,ft,     'Weight',   w);
+    Decfit(ObjectInd).fit=decfitst;
+    DecGOF(ObjectInd).gof = decgof;
     
     H = [ones(size(RA(ObjectInd,CondForFit)')) JD(ObjectInd,CondForFit)'];
+    
     
     RAlscovfit(ObjectInd,:) = (lscov(H,RA(ObjectInd,CondForFit)',w))';
     Declscovfit(ObjectInd,:) = (lscov(H,Dec(ObjectInd,CondForFit)',w))';
@@ -62,17 +76,32 @@ for ObjectInd = 1:Nobject
     ModelDec  = H * Declscovfit(ObjectInd,:)';
     
     RAdev= abs( ModelRA- RA(ObjectInd,CondForFit)');
-    Decdev= abs( ModelRA- Dec(ObjectInd,CondForFit)');
+    Decdev= abs( ModelDec- Dec(ObjectInd,CondForFit)');
     
-    RASigmaClipingFlag  = stat.sigmaclip(RAdev,4);
-    DecSigmaClipingFlag = stat.sigmaclip(Decdev,4);
+    %RASigmaClipingFlag  = stat.sigmaclip(RAdev,3);
+    %DecSigmaClipingFlag = stat.sigmaclip(Decdev,3);
+    
+    RASigmaClipingFlag = abs(RAdev-Util.stat.rmean(RAdev))<InPar.Nsigma*Util.stat.rstd(RAdev);
+    DecSigmaClipingFlag = abs(Decdev-Util.stat.rmean(Decdev))<InPar.Nsigma*Util.stat.rstd(Decdev);
     HsigRA = H(RASigmaClipingFlag,:);
+    %HsigRA =[HsigRA HsigRA(:,2).^2];
     HsigDec = H(DecSigmaClipingFlag,:);
+    %HsigDec =[HsigDec HsigDec(:,2).^2];
     RAclip= RA(ObjectInd,CondForFit)';
     RAclip= RAclip(RASigmaClipingFlag);
     
-    RAfitclip(ObjectInd,:)  = lscov(HsigRA,RAclip,w(RASigmaClipingFlag));
+    Decclip= Dec(ObjectInd,CondForFit)';
+    Decclip= Decclip(DecSigmaClipingFlag);
+
+    if(ObjectInd==3)
+        ObjectInd;
+    end
+    RAfitclip(ObjectInd,:)  = lscov(HsigRA,RAclip,w(RASigmaClipingFlag)');
+    Decfitclip(ObjectInd,:) = lscov(HsigDec,Decclip,w(DecSigmaClipingFlag)');
     
+    
+    % Calculate the Offset from the mean position, this will be used to the
+    % PM and plx fit
     if strcmp(InPar.Units,'deg')
         OffRA=(RA(ObjectInd,CondForFit)-nanmean(RA(ObjectInd,CondForFit))).*cos(Dec(ObjectInd,CondForFit)./RAD);
         OffDec=Dec(ObjectInd,CondForFit)-nanmean(Dec(ObjectInd,CondForFit));
@@ -82,16 +111,29 @@ for ObjectInd = 1:Nobject
         OffDec=Dec(ObjectInd,CondForFit)-nanmean(Dec(ObjectInd,CondForFit));
     end
     
-    PMfit(ObjectInd)=Asmtry.fit_pm_parallax(matchdata.JD(ObjectInd,CondForFit)',OffRA',OffDec'...
-                                        ,'ErrRA',astormetryrms(CondForFit),'ErrDec',astormetryrms(CondForFit),...
-                                        'RA',(RA(ObjectInd,CondForFit))','Dec',(Dec(ObjectInd,CondForFit))','GivenPlx',);
-    
+     %fit for proper motion and position with a given parallax by GAIA
+     
+     if InPar.UsePlxFit 
+        if (~isnan(GAIAAstCat.Cat(ObjectInd,GAIAAstCat.Col.Plx)))
+            PMfit(ObjectInd)=Asmtry.fit_pm_parallax(matchdata.JD(ObjectInd,CondForFit)',OffRA',OffDec'...
+                                         ,'ErrRA',astormetryrms(CondForFit),'ErrDec',astormetryrms(CondForFit),...
+                                         'RA',(nanmean(RA(ObjectInd,CondForFit))),'Dec',nanmean(Dec(ObjectInd,CondForFit)),...
+                                         'GivenPlx',GAIAAstCat.Cat(ObjectInd,GAIAAstCat.Col.Plx),'Plx_is_Given',true,...
+                                         'RefEpoch', JD2000 + 15.5/JD2yr );
+            PMfit(ObjectInd).Par(1) = (PMfit(ObjectInd).Par(1) + (nanmean(RA(ObjectInd,CondForFit))));
+            PMfit(ObjectInd).Par(3) = PMfit(ObjectInd).Par(3) + (nanmean(Dec(ObjectInd,CondForFit)));
+     else
+         PMfit=[];
+     end
 end
 
 
-ComData.RAfit = RAfit;
-ComData.Decfit = Decfit;
+ComData.RAfit = RAfit';
+ComData.RAgof =RAGOF';
+ComData.Decfit = Decfit';
+ComData.Decgof =DecGOF';
 ComData.RAclipfit = RAfitclip;
+ComData.Decclipfit = Decfitclip;
 ComData.ParallaxFit= PMfit;
 
 

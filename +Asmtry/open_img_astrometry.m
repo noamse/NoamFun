@@ -44,9 +44,9 @@ for i=1:numel(Index)
     AstCatTemp=AstCat.sim2astcat(Sa);
     AstCatTemp.UserData.R=R;
     AstCatTemp.UserData.FileName=FileNames{i};
-    
-    save([InPar.SaveDirectory InPar.SaveNameAstCat],'AstCatTemp');
     InPar.SaveNameAstCat=['AstCat_' num2str(Index(i)) '.mat'];
+    save([InPar.SaveDirectory InPar.SaveNameAstCat],'AstCatTemp');
+    
     
 end
 end

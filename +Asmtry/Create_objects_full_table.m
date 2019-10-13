@@ -5,21 +5,25 @@ function [DataAstCat,MatchData,RefCat]= Create_objects_full_table(astcat,varargi
 
 %call - 
 %        [DataAstCat,MatchData,RefCat]= Create_objects_full_table(astcat)
-
+RAD= 180/pi;
 JD0=2450000;
 JD2yr=1/365.25;
 Rad2Deg=180/pi;
 Deg2marcs = 1000*3600;
 DefV.SearchRadius= 1;
 DefV.ImageSize=[2048 4096];
-DefV.ApperaFactor=0.95;
+DefV.ApperaFactor=0.85;
 DefV.ImageHighBound=1;
 DefV.ImageLowBound=0;
 DefV.MaxMagBound=17;
 DefV.MinMagBound=13;
 DefV.OnlyAstrometryUsed=true;
+DefV.KeyRA              = {'RA','OBJRA','OBJRAD','CRVAL1'};
+DefV.KeyDec             = {'DEC','OBJDEC','OBJDECD','CRVAL2'};
+DefV.KeyEquinox         = {'EQUINOX'};
+
 DefV.Colls2return={'JD','XWIN_IMAGE','YWIN_IMAGE','ALPHAWIN_J2000','DELTAWIN_J2000','MAG_PSF',...
-    'ResX','ResY','Res','Mag','rrmsN','RefColor','PA','LST','AssymErr','ImgIndex','FieldNum'};
+    'ResX','ResY','Res','Mag','rrmsN','RefColor','PA','LST','AssymErr','ImgIndex','FieldNum','ResAlpha','ResDelta','AirMass'};
 DefV.FieldNum = 0;
 %{'JD','XWIN_IMAGE','YWIN_IMAGE','MAG_PSF','ALPHAWIN_J2000','DELTAWIN_J2000'};
 %DefV.GAIAColls2return= {'RA','Dec','ErrRA','ErrDec','Plx','PMRA','ErrRA','PMDec','ErrPMDec','ExcessNoise','MagG','Trf}
@@ -42,7 +46,33 @@ for i=1:Nel
     
     Dec=astcat(i).Cat(:,astcat(i).Col.DELTAWIN_J2000);
     
+    
+    
+    Out     = getcoo(astcat(i),'KeyRA',InPar.KeyRA,'KeyDec',InPar.KeyDec,'KeyEquinox',InPar.KeyEquinox,'OutUnits','rad');
+    Coo2000 = celestial.coo.coco([[Out.RA].',[Out.Dec].'],sprintf('j%06.1f',Out(1).Equinox),'j2000.0');
+    RAimg  = Coo2000(:,1);
+    Decimg = Coo2000(:,2);
+    
+    R = astcat(i).UserData.R; 
+    GAIAX = R.RefX(R.FlagG);
+    GAIAY = R.RefY(R.FlagG);
+    
+    [alpha,delta] = celestial.proj.pr_ignomonic(GAIAX/RAD,GAIAY/RAD,[RAimg,Decimg]);
+    
+    resalpha = alpha - RA;
+    resdelta = delta - Dec; 
+    
+    
+    %!!!!----Problem in the Longtitude reading - sometime positive----!!!!
+    Long=-116.8599/RAD;
+    
+    [AirMass,AzAlt,HA]=celestial.coo.airmass(cell2mat(astcat(i).getkey('OBSJD')),RA,Dec,[Long Lat]);
 
+
+    
+    
+    
+    
     PA=celestial.coo.parallactic_angle([RA, Dec], LST, Lat./Rad2Deg) ;
     ResX=       astcat(i).UserData.R.ResidX(astcat(i).UserData.R.FlagG)*Deg2marcs ;
     ResY=       astcat(i).UserData.R.ResidY(astcat(i).UserData.R.FlagG)*Deg2marcs ;
@@ -54,6 +84,8 @@ for i=1:Nel
     LSTcol = ones(size(ResX))*LST;
     ImgIndex= ones(size(ResX)).*i;
     FieldNum= ones(size(ResX)).*InPar.FieldNum;
+    %AirMass = 
+    
     
     astcat(i)=col_insert(astcat(i),ResX,numel(astcat(i).Cat(1,:)),'ResX');
     astcat(i)=col_insert(astcat(i),ResY,numel(astcat(i).Cat(1,:)),'ResY');
@@ -66,12 +98,15 @@ for i=1:Nel
     astcat(i)=col_insert(astcat(i),LSTcol,numel(astcat(i).Cat(1,:)),'LST');
     astcat(i)=col_insert(astcat(i),ImgIndex,numel(astcat(i).Cat(1,:)),'ImgIndex');
     astcat(i)=col_insert(astcat(i),FieldNum,numel(astcat(i).Cat(1,:)),'FieldNum');
+    astcat(i)=col_insert(astcat(i),resalpha,numel(astcat(i).Cat(1,:)),'ResAlpha');
+    astcat(i)=col_insert(astcat(i),resdelta,numel(astcat(i).Cat(1,:)),'ResDelta');
+    astcat(i)=col_insert(astcat(i),AirMass,numel(astcat(i).Cat(1,:)),'AirMass');
 end
 
 
 
 
-[MatchData,AstOut]= Asmtry.match_mat(astcat,'Colls2return',InPar.Colls2return,'ApperaFactor',InPar.ApperaFactor,'match_SearchRadius',InPar.SearchRadius...
+[MatchData,~]= Asmtry.match_mat(astcat,'Colls2return',InPar.Colls2return,'ApperaFactor',InPar.ApperaFactor,'match_SearchRadius',InPar.SearchRadius...
     ,'MaxMagBound',InPar.MaxMagBound,'MinMagBound',InPar.MinMagBound);
 RefCat =  Asmtry.compare_cat(MatchData);
 

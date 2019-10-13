@@ -28,7 +28,7 @@ switch lower(InPar.Units)
         UnitsCells = {'deg'; 'deg'; 'pix'; 'pix'; 'pix'; 'pix'};
 end
 
-[AstOut,~]=match(AstCatalog,AstCatalog(1), 'SearchRad' ,InPar.match_SearchRadius,'CatUnits',UnitsCells);
+[AstOut,~]=match(AstCatalog,AstCatalog(1), 'SearchRad' ,InPar.match_SearchRadius,'CatUnits',UnitsCells,'RefUnits',InPar.Units,'CatUnits',InPar.Units);
 
 
 for i=1:length(AstOut)
@@ -42,7 +42,8 @@ end
 Colls2return=InPar.Colls2return;
 %chain all the AstOut into a matched matrix format
 [Res,Summary,~]=astcat2matched_array(AstOut,Colls2return)  ;
-ConditionForAppearence=Summary.Nnn>InPar.ApperaFactor*length(AstOut);
+ConditionForAppearence=Summary.Nnn>InPar.ApperaFactor*length(AstOut)...
+    & sum(~isnan(Res.ALPHAWIN_J2000)')'>=  InPar.ApperaFactor*length(AstOut);%& sum(~isnan(Res.ALPHAWIN_J2000(:,:)'))' >InPar.ApperaFactor*length(AstOut);
 %ConditionForLocationX= nanmean(Res.XWIN_IMAGE,2)>InPar.ImageLowBound*InPar.ImageSize(1) &nanmean(Res.XWIN_IMAGE,2)<InPar.ImageHighBound*InPar.ImageSize(1);
 %ConditionForLocationY= nanmean(Res.YWIN_IMAGE,2)>InPar.ImageLowBound*InPar.ImageSize(2) & nanmean(Res.YWIN_IMAGE,2)<InPar.ImageHighBound*InPar.ImageSize(2);
 %ConditionForMagnitude= nanmean(Res.MAG_PSF,2)<InPar.MaxMagBound &nanmean(Res.MAG_PSF,2)>InPar.MinMagBound;
