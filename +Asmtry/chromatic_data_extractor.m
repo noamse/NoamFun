@@ -35,9 +35,11 @@ for i=1:length(astcat)
     else
         FLAG= (InPar.MagLow<Res.RefMag)& (InPar.MagHigh>Res.RefMag);
     end
-    
-    Cat(i).Cat=astcat(i).Cat;
-    
+    if (numel(FLAG)==numel(astcat(i).Cat(:,1)))
+        Cat(i).Cat=astcat(i).Cat(FLAG,:);
+    else
+        Cat(i).Cat=astcat(i).Cat;
+    end
     %For the case of catalog in radians
     %Save the angles in degrees
     if (isfield(Res,'Col'))

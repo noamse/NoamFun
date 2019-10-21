@@ -5,20 +5,18 @@ DefV.UnitAngleOut='rad';
 DefV.Survey='PTF';
 DefV.MagLow = 12;
 DefV.MagHigh = 19;
-DefV.Nbinscolor = 6;
-DefV.ColorTrend3rd= [1.1436e-08 ;-2.3406e-08;1.4812e-08;-3.67e-09];
 DefV.KeyRA              = {'RA','OBJRA','OBJRAD','CRVAL1'};
 DefV.KeyDec             = {'DEC','OBJDEC','OBJDECD','CRVAL2'};
 DefV.KeyEquinox         = {'EQUINOX'};
-
+DefV.FlagName = 'N';
 
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
-Cat=Asmtry.chromatic_data_extractor(astcat,'Survey',InPar.Survey,'MagLow',InPar.MagLow,'MagHigh',InPar.MagHigh);
+Cat=Asmtry.chromatic_data_extractor(astcat,'Survey',InPar.Survey,'MagLow',InPar.MagLow,'MagHigh',InPar.MagHigh,'FlagName',InPar.FlagName);
 
 astcatchrom=astcat;
 for i=1:length(Cat)
     %ROTMAT= [Cat(i).TranC.Par{1}{2} Cat(i).TranC.Par{1}{3}; Cat(i).TranC.Par{2}{2} Cat(i).TranC.Par{2}{3}];
-    resvec=[Cat(i).x_res Cat(i).y_res];
+    %resvec=[Cat(i).x_res Cat(i).y_res];
     %Rmat = ROTMAT;
     %resvec=ROTMAT*resvec'/norm(ROTMAT);
     
@@ -79,7 +77,7 @@ for i=1:length(Cat)
     R = astcat(i).UserData.R; 
     GAIAX = R.RefX(R.FlagG);
     GAIAY = R.RefY(R.FlagG);
-    FlagMag = R.RefMag(R.FlagG)>14& R.RefMag(R.FlagG)<17;
+    FlagMag = R.RefMag(R.FlagG)>InPar.MagLow& R.RefMag(R.FlagG)<InPar.MagHigh;
     GAIAX=GAIAX(FlagMag);
     GAIAY=GAIAY(FlagMag); 
     %{
@@ -101,7 +99,7 @@ for i=1:length(Cat)
     %Brings GAIA with a good approximation to the model...
     [alpha,delta] = celestial.proj.pr_ignomonic(GAIAX/RAD,GAIAY/RAD,[RA,Dec]);
     
-    resalpha = (alpha- InputCat(:,Cat(i).Col.ALPHAWIN_J2000)).*cos(delta);
+    resalpha = alpha- InputCat(:,Cat(i).Col.ALPHAWIN_J2000);
     resdelta = delta - InputCat(:,Cat(i).Col.DELTAWIN_J2000);
 
     [parallalpha,~,~,S1]=    lscov(H(flag,:),resalpha(flag));

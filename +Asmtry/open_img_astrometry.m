@@ -39,6 +39,11 @@ for i=1:numel(Index)
             [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'SCALE',1.012,'Flip',[1 1],'ApplyPM',true); 
     end
     %updating the coordinates in the catalog
+    
+    if (InPar.ChromCorr)
+        
+        
+    end
     Sa=update_coordinates(Sa);
     %creating a AstCat object to save more efficiently
     AstCatTemp=AstCat.sim2astcat(Sa);

@@ -5,7 +5,7 @@ generate the matched mat for objects with several conditions
 
 %}
 RAD=180/pi;
-DefV.Units = 'rad';
+DefV.Units = {'rad'};
 DefV.match_SearchRadius = 2;
 DefV.ImageSize=[2048 4096];
 DefV.ApperaFactor=0.9;
@@ -21,14 +21,14 @@ if strcmp(InPar.Survey, 'ZTF')
     InPar.ImageSize = [3072 3080];
 end
 
-switch lower(InPar.Units)
+switch lower(InPar.Units{1})
     case 'rad'
         UnitsCells = {'rad'; 'rad'; 'pix'; 'pix'; 'pix'; 'pix'};
     case 'deg'
         UnitsCells = {'deg'; 'deg'; 'pix'; 'pix'; 'pix'; 'pix'};
 end
 
-[AstOut,~]=match(AstCatalog,AstCatalog(1), 'SearchRad' ,InPar.match_SearchRadius,'CatUnits',UnitsCells,'RefUnits',InPar.Units,'CatUnits',InPar.Units);
+[AstOut,~]=match(AstCatalog,AstCatalog(1), 'SearchRad' ,InPar.match_SearchRadius,'CatUnits',UnitsCells,'RefUnits',InPar.Units{1},'CatUnits',InPar.Units);
 
 
 for i=1:length(AstOut)

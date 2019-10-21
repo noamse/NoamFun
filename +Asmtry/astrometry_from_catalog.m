@@ -12,7 +12,7 @@ DefV.ApplyParallax= true;
 DefV.MaxExcessNoise=1;
 DefV.Index=  [];
 DefV.Survey= 'PTF';
-
+DefV.use_astrometry=true;
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 
@@ -37,19 +37,25 @@ for i=1:numel(Index)
     load(FileNames{i});
     S = astcat2sim(AstCatTemp);
     ImSize = [cell2mat(S.getkey('NAXIS1')) cell2mat(S.getkey('NAXIS2'))];
-    switch InPar.Survey
-        case 'PTF'
-            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'ApplyPM',true,'ImSize',ImSize); 
-        case 'ZTF'
-            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'SCALE',1.012,'Flip',[1 1],'ApplyPM',true); 
+    if (InPar.use_astrometry)
+        switch InPar.Survey
+            case 'PTF'
+                [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'ApplyPM',true,'ImSize',ImSize); 
+            case 'ZTF'
+                [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'SCALE',1.012,'Flip',[1 1],'ApplyPM',true); 
+            
+        end
+        Sa=update_coordinates(Sa);
+
+    else
+        Sa=S;
     end
-    
-    
     %updating the coordinates in the catalog
-    Sa=update_coordinates(Sa);
     %creating a AstCat object to save more efficiently
     AstCatTemp=AstCat.sim2astcat(Sa);
-    AstCatTemp.UserData.R=R;
+    if(InPar.use_astrometry)
+        AstCatTemp.UserData.R=R;
+    end
     AstCatTemp.UserData.FileName=FileNames{i};
     
     save([InPar.SaveDirectory InPar.SaveNameAstCat],'AstCatTemp');

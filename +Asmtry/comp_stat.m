@@ -31,7 +31,7 @@ for i =1:numel(compcat.RAfit)
     muDec_used(i) = compcat.Decclipfit(i,2);
 end
 
-
+% 
 % RA0 = [];
 % Dec0 =[] ; 
 % muRA_used = []; 

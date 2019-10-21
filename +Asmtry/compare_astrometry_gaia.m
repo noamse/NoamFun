@@ -58,7 +58,7 @@ Decfitclip = zeros(Nobject,2);
 %RAfitclip =zeros(Nobject,3);
 %Decfitclip = zeros(Nobject,3);
 for ObjectInd = 1:Nobject
-    ObjectInd
+    ObjectInd;
     JD(ObjectInd,:)=JD(ObjectInd,:)*JD2yr-15.5;
     CondForFit=~(isnan(RA(ObjectInd,:)));
     w=1./(astormetryrms(CondForFit)).^2;
@@ -96,9 +96,6 @@ for ObjectInd = 1:Nobject
     Decclip= Dec(ObjectInd,CondForFit)';
     Decclip= Decclip(DecSigmaClipingFlag);
 
-    if(ObjectInd==3)
-        ObjectInd;
-    end
     RAfitclip(ObjectInd,:)  = lscov(HsigRA,RAclip,w(RASigmaClipingFlag)');
     Decfitclip(ObjectInd,:) = lscov(HsigDec,Decclip,w(DecSigmaClipingFlag)');
     
