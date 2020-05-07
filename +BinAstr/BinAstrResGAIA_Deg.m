@@ -28,14 +28,15 @@ COLdiamater=atand(COLiner./distance);
 %project the COL to Observer plane
 Colmtag= BinAstr.Proj2Obs(COLdiamater,Long,Lat);
 %[NorthPoleEclipticCoo]= celestial.coo.coco([0,pi/2],'j2000','e');
-NorthPoleEclipticCoo=[1.570796326794897 1.161703527618819];
+NorthPoleEclipticCoo=[1.570796326794897 1.161703527618819]; 
 
 [~,PAEarth_ecliptic]=celestial.coo.sphere_dist_fast(Long,Lat,NorthPoleEclipticCoo(1),NorthPoleEclipticCoo(2));
 %2d -> 1d projection for GAIA's along scan axis
 %PA=PAEarth_ecliptic +MeanScanPA;
 %GAIAaxisCOL= Colmtag(:,1).*sin(PA) + Colmtag(:,2).*cos(PA);
 
-PA=PAEarth_ecliptic - MeanScanPA;
+
+PA=PAEarth_ecliptic + MeanScanPA;
 GAIAaxisCOL= Colmtag(:,1).*cos(PA+pi/2) + Colmtag(:,2).*sin(PA+pi/2);
 
 end

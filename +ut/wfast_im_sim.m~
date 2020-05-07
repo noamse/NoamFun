@@ -1,0 +1,21 @@
+function [S]= wfast_im_sim(impath,varargin)
+
+
+DefV.im_h5opt='/stack';
+InPar = InArg.populate_keyval(DefV,varargin,mfilename);
+
+
+
+h5read([imagefolderpath imagedir(i+j).name],InPar.im_h5opt)
+
+
+
+
+
+
+
+end
+
+
+
+

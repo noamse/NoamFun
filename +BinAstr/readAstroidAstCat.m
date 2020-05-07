@@ -1,4 +1,4 @@
-function [MeanEpochLTC,MeanEpoch,MeanResAL,MeanResAC,MeanScanPA,Lat,Long,distance] = readAstroidAstCat(Index,GAIADR2sso_obs,GAIADR2sso_orbit,GAIADR2sso_orbitres)
+function [MeanEpochLTC,MeanEpoch,MeanResAL,MeanResAL_err,MeanResAC,MeanScanPA,Lat,Long,distance] = readAstroidAstCat(Index,GAIADR2sso_obs,GAIADR2sso_orbit,GAIADR2sso_orbitres)
 oldFolder = cd('/home/noamse/astro/binary_asteroid/horizon2/data/AsteroidCat') ;
 A= dir('*.mat'); 
 FileName={A(:).name};  
@@ -48,13 +48,21 @@ for Isrc=IndexForSource
     Nep    = numel(Epoch);
 
     MeanResAL = zeros(Ntransit,1);
+    MeanResAL_err = zeros(Ntransit,1);
     MeanResAC = zeros(Ntransit,1);
     NResAl    = zeros(Ntransit,1);
     MeanEpoch = zeros(Ntransit,1);
     MeanScanPA= zeros(Ntransit,1);
     for Itransit=1:1:Ntransit
         Itt = find(Objects_orbitres.transit_id == UniqueTransit(Itransit));
-        MeanResAL(Itransit)  = mean(Objects_orbitres.residual_al(Itt));
+        if (length(Objects_orbitres.residual_al(Itt))<4)
+            MeanResAL(Itransit)  = mean(Objects_orbitres.residual_al(Itt));
+            MeanResAL_err(Itransit) = std(Objects_orbitres.residual_al(Itt));
+        else
+            MeanResAL(Itransit)  = Util.stat.rmean(Objects_orbitres.residual_al(Itt));
+            MeanResAL_err(Itransit) = Util.stat.rstd(Objects_orbitres.residual_al(Itt));
+
+        end
         MeanResAC(Itransit)  = mean(Objects_orbitres.residual_ac(Itt));
         NResAl(Itransit)     = numel(Itt);
         MeanEpoch(Itransit)  = mean(Epoch(Itt));
@@ -79,6 +87,7 @@ for Isrc=IndexForSource
     MeanEpochLTC = MeanEpochLTC (Flag);
     MeanEpoch= MeanEpoch (Flag);
     MeanResAL= MeanResAL(Flag);
+    MeanResAL_err= MeanResAL_err(Flag);
     MeanResAC= MeanResAC(Flag);
     MeanScanPA= MeanScanPA(Flag);
 
