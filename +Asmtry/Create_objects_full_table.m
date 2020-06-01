@@ -23,7 +23,7 @@ DefV.KeyDec             = {'DEC','OBJDEC','OBJDECD','CRVAL2'};
 DefV.KeyEquinox         = {'EQUINOX'};
 
 DefV.Colls2return={'JD','XWIN_IMAGE','YWIN_IMAGE','ALPHAWIN_J2000','DELTAWIN_J2000','MAG_PSF',...
-    'ResX','ResY','Res','Mag','rrmsN','RefColor','PA','LST','AssymErr','ImgIndex','FieldNum','ResAlpha','ResDelta','AirMass'};
+    'ResX','ResY','Res','Mag','rrmsN','RefColor','PA','LST','AssymErr','ImgIndex','FieldNum','ResAlpha','ResDelta','AirMass','Seeing'};
 DefV.FieldNum = 0;
 %{'JD','XWIN_IMAGE','YWIN_IMAGE','MAG_PSF','ALPHAWIN_J2000','DELTAWIN_J2000'};
 %DefV.GAIAColls2return= {'RA','Dec','ErrRA','ErrDec','Plx','PMRA','ErrRA','PMDec','ErrPMDec','ExcessNoise','MagG','Trf}
@@ -42,6 +42,7 @@ for i=1:Nel
     LST=rem(datenum(LSTdate),1);
     telairmass=cell2mat(astcat(i).getkey('AIRMASS'));
     Lat=cell2mat(astcat(i).getkey('OBSLAT'));
+    seeing = cell2mat(astcat(i).getkey('SEEING'));
     RA=astcat(i).Cat(:,astcat(i).Col.ALPHAWIN_J2000);
     
     Dec=astcat(i).Cat(:,astcat(i).Col.DELTAWIN_J2000);
@@ -84,6 +85,7 @@ for i=1:Nel
     LSTcol = ones(size(ResX))*LST;
     ImgIndex= ones(size(ResX)).*i;
     FieldNum= ones(size(ResX)).*InPar.FieldNum;
+    Seeing = ones(size(ResX)).*seeing;
     %AirMass = 
     
     
@@ -101,6 +103,7 @@ for i=1:Nel
     astcat(i)=col_insert(astcat(i),resalpha,numel(astcat(i).Cat(1,:)),'ResAlpha');
     astcat(i)=col_insert(astcat(i),resdelta,numel(astcat(i).Cat(1,:)),'ResDelta');
     astcat(i)=col_insert(astcat(i),AirMass,numel(astcat(i).Cat(1,:)),'AirMass');
+    astcat(i)=col_insert(astcat(i),Seeing,numel(astcat(i).Cat(1,:)),'Seeing');
 end
 
 

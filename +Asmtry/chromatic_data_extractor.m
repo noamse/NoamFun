@@ -91,6 +91,7 @@ for i=1:length(astcat)
     Cat(i).PA=PA(:,1);
     [airmass,AzAlt,HA]=celestial.coo.airmass(Cat(i).JD*ones(size(RA)),RA,Dec,[Cat(i).Lon,Cat(i).Lat]./RAD);
     Cat(i).airmass=airmass;
+    Cat(i).seeing = cell2mat(astcat(i).getkey('SEEING'));
     switch lower(InPar.resUnits)
         case 'deg'
             Cat(i).x_res=Res.ResidX(FLAG);

@@ -5,12 +5,13 @@ DefV.UseCase_TranC      = {'affine_tt_cheby2_4', 100; 'affine_tt_cheby2_3', 70; 
 DefV.SaveDirectory='/home/noamse/matlab/rms_measure/OpenedImages/';
 DefV.SaveNameAstCat='AstCat_1.mat';
 DefV.StartIndex=1;
-DefV.SourceDirectory='/home/noamse/matlab/rms_measure/TestIm/';
+DefV.SourceDirectory='/data1/noamse/Astrometry/Data/Images/Im_100019/';
 DefV.MaxPMerr=[];
 DefV.ApplyParallax= true;
 DefV.MaxExcessNoise=1;
 DefV.Index=  [];
 DefV.Survey= 'PTF';
+DefV.RefCatMagRange= [12 19];
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 A= dir([InPar.SourceDirectory '*.fits']); 
@@ -34,16 +35,12 @@ for i=1:numel(Index)
     S = mextractor(S); 
     switch InPar.Survey
         case 'PTF'
-            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'ApplyPM',true); 
+            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'ApplyPM',true,'RefCatMagRange',InPar.RefCatMagRange); 
         case 'ZTF'
-            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'SCALE',1.012,'Flip',[1 1],'ApplyPM',true); 
+            [R,Sa] = astrometry(S,'UseCase_TranC',InPar.UseCase_TranC,'MaxPMerr',InPar.MaxPMerr,'MaxExcessNoise',InPar.MaxExcessNoise,'ApplyParallax',true,'SCALE',1.012,'Flip',[1 1],'ApplyPM',true,'RefCatMagRange',InPar.RefCatMagRange); 
     end
     %updating the coordinates in the catalog
     
-    if (InPar.ChromCorr)
-        
-        
-    end
     Sa=update_coordinates(Sa);
     %creating a AstCat object to save more efficiently
     AstCatTemp=AstCat.sim2astcat(Sa);

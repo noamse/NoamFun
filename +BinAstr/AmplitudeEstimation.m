@@ -6,7 +6,7 @@ function Amp =  AmplitudeEstimation(D1,D2,a,d)
 %         a     - semi major axis [km]
 %         d     - distance from obsrever [au]
 %
-%output : estimated amplitude in miliarc
+%output : estimated amplitude in miliarcsec
 
 
 ampkm = a  .* ((D1.^3).*(D2.^2) - (D2.^3).*(D1.^2)   )./((D1.^3 + D2.^3).*(D1.^2+D2.^2));
