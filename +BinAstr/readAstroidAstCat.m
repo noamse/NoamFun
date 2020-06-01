@@ -57,10 +57,12 @@ for Isrc=IndexForSource
         Itt = find(Objects_orbitres.transit_id == UniqueTransit(Itransit));
         if (length(Objects_orbitres.residual_al(Itt))<4)
             MeanResAL(Itransit)  = mean(Objects_orbitres.residual_al(Itt));
-            MeanResAL_err(Itransit) = std(Objects_orbitres.residual_al(Itt));
+            MeanResAL_err(Itransit) = std(Objects_orbitres.residual_al(Itt))./(sqrt(numel(Itt)));
         else
-            MeanResAL(Itransit)  = Util.stat.rmean(Objects_orbitres.residual_al(Itt));
-            MeanResAL_err(Itransit) = Util.stat.rstd(Objects_orbitres.residual_al(Itt));
+            %MeanResAL(Itransit)  = Util.stat.rmean(Objects_orbitres.residual_al(Itt));
+            %MeanResAL_err(Itransit) = Util.stat.rstd(Objects_orbitres.residual_al(Itt));
+            MeanResAL(Itransit)  = mean(Objects_orbitres.residual_al(Itt));
+            MeanResAL_err(Itransit) = std(Objects_orbitres.residual_al(Itt))./(sqrt(numel(Itt)));
 
         end
         MeanResAC(Itransit)  = mean(Objects_orbitres.residual_ac(Itt));

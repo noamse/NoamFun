@@ -1,7 +1,7 @@
 function eHead =  ghead2ehead(path,varargin)
 
-% Convert Guy's hdf5 header to Eran's 3 column cell array header. 
-% Each row in the cell array represent attribute from Guy's header by
+% Convert WFAST hdf5 header to HEAD structure from the MAAT package. 
+% Each row in the cell array represent attribute from WFAST header by
 % {Key, Val, Description}
 
 DefV.struct=[];
