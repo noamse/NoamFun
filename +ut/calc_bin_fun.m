@@ -13,12 +13,13 @@ else
     edges = InPar.edges;
 end
 
-Nbins = numel(edges);
+
 
 
 
 [N,~,loc]=histcounts(X,edges);
 fun_calc=nan(numel(N),1);
+ymid = nan(size(N));
 for i =1:numel(N)
     flag= loc==i;
     ymid(i)= InPar.fun(Y(flag));

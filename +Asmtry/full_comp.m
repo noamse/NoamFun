@@ -14,6 +14,9 @@ DefV.NameOfFieldInSavedFile='AstCatTemp';
 DefV.Colls2return={'JD','XWIN_IMAGE','YWIN_IMAGE','MAG_PSF','ALPHAWIN_J2000','DELTAWIN_J2000'};
 DefV.clear_failure=true;
 DefV.use_rrms=true;
+DefV.Nsigma= 5;
+DefV.JDcut= false;
+DefV.JDforcut = [];
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 
@@ -27,5 +30,6 @@ astcat = Asmtry.open_directory_astrometry(Directory,'UsedOnly',InPar.UsedOnly,'F
 
 
 
-[GAIAcat, comp,FlagGAIA]   = Asmtry.compare_astrometry_gaia(astcat,data,'UsePlxFit',InPar.UsePlxFit,'use_rrms',InPar.use_rrms);
+[GAIAcat, comp,FlagGAIA]   = Asmtry.compare_astrometry_gaia(astcat,data,'UsePlxFit',InPar.UsePlxFit,'use_rrms',InPar.use_rrms,...
+    'Nsigma',InPar.Nsigma,'JDcut',InPar.JDcut,'JDforcut',InPar.JDforcut);
 end

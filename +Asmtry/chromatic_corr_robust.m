@@ -15,12 +15,7 @@ Cat=Asmtry.chromatic_data_extractor(astcat,'Survey',InPar.Survey,'MagLow',InPar.
 
 astcatchrom=astcat;
 for i=1:length(Cat)
-    %ROTMAT= [Cat(i).TranC.Par{1}{2} Cat(i).TranC.Par{1}{3}; Cat(i).TranC.Par{2}{2} Cat(i).TranC.Par{2}{3}];
-    %resvec=[Cat(i).x_res Cat(i).y_res];
-    %Rmat = ROTMAT;
-    %resvec=ROTMAT*resvec'/norm(ROTMAT);
     
-    %resvec=resvec';
     q=Cat(i).PA;
     
     
@@ -41,6 +36,7 @@ for i=1:length(Cat)
     [AirMass,AzAlt,HA]=celestial.coo.airmass(Cat(i).JD,Cat(i).RA,Cat(i).Dec,[Long Lat]);
 
     color=Cat(i).color;
+    color=abs(color-nanmedian(color));
     flag = ~isnan(color);
     constvec=ones(size(Cat(i).color));
     %H=[constvec ,color,cos(q).*color ,sin(q).*color,cos(q).*color .^2 ,sin(q).*color .^2 ,cos(q).*color.^3,sin(q).*color .^3,AirMass];
@@ -58,21 +54,6 @@ for i=1:length(Cat)
     RA  = Coo2000(:,1);
     Dec = Coo2000(:,2);
     
-    %[X,Y] =celestial.proj.pr_gnomonic(InputCat(:,Cat(i).Col.ALPHAWIN_J2000),InputCat(:,Cat(i).Col.DELTAWIN_J2000),(RAD.*3600./1.01),[RA,Dec]);
-    %X = X/(RAD.*3600./1.01)- resvec(:,1);
-    %Y = Y/(RAD.*3600./1.01)- resvec(:,2);
-  %{    
-  
-    SScale= RAD.*3600./1.01;
-    [X,Y] =celestial.proj.pr_gnomonic(astcat(i).Cat(:,Cat(i).Col.ALPHAWIN_J2000),astcat(i).Cat(:,Cat(i).Col.DELTAWIN_J2000),SScale,[RA,Dec]);
-    CD = [1 0; 0 1].*1.01./3600;
-    MatchedCatCD = [CD*[X,Y]']';
-    MatchedCatCD(:,1) = MatchedCatCD(:,1)+resvec(:,1);
-    MatchedCatCD(:,2) = MatchedCatCD(:,2)+resvec(:,2);
-    pix  = [inv(CD)*MatchedCatCD']'+ [2048, 4096]/2; 
-    [B,I]=sort(pix(:,2));
-  %}      
-
     
     R = astcat(i).UserData.R; 
     GAIAX = R.RefX(R.FlagG);
@@ -101,22 +82,21 @@ for i=1:length(Cat)
     
     resalpha = alpha- InputCat(:,Cat(i).Col.ALPHAWIN_J2000);
     resdelta = delta - InputCat(:,Cat(i).Col.DELTAWIN_J2000);
+    Cat(i).rms_alpha_np = rms(alpha- InputCat(:,Cat(i).Col.ALPHAWIN_J2000));
+    Cat(i).rms_delta_np = rms(delta- InputCat(:,Cat(i).Col.DELTAWIN_J2000));
 
     [parallalpha,~,~,S1]=    lscov(H(flag,:),resalpha(flag));
     [paralldelta,~,~,S2] =    lscov(H(flag,:),resdelta(flag));
      
     alpha_corr = InputCat(:,Cat(i).Col.ALPHAWIN_J2000) + H*parallalpha; 
     delta_corr = InputCat(:,Cat(i).Col.DELTAWIN_J2000) + H*paralldelta; 
+    Cat(i).rms_alpha_p = rms(alpha- alpha_corr);
+    Cat(i).rms_delta_p = rms(delta- delta_corr);
+
     
-    %[alpha,delta] = celestial.proj.pr_ignomonic(MatchedCatCD(:,1),MatchedCatCD(:,2),[RA,Dec]);
-    %[alpha,delta] = celestial.proj.pr_ignomonic(GAIAX/RAD,GAIAY/RAD,[RA,Dec]);
-    %[X,Y]=projection(Cat(i).AstCat,'itan',[astcat(i).Col.ALPHAWIN_J2000 astcat(i).Col.DELTAWIN_J2000],[RAD.*3600./1.01 RA Dec],'rad');
+    InputCat(:,Cat(i).Col.DELTAWIN_J2000) =delta_corr;
+    InputCat(:,Cat(i).Col.ALPHAWIN_J2000) =alpha_corr;
     
-    InputCat(:,Cat(i).Col.DELTAWIN_J2000) =delta_corr;%nansum([InputCat(:,Cat(i).Col.DELTAWIN_J2000),resvec(:,2)],2);
-    InputCat(:,Cat(i).Col.ALPHAWIN_J2000) =alpha_corr;%nansum([InputCat(:,Cat(i).Col.ALPHAWIN_J2000),resvec(:,1)],2);
-    
-%     InputCat(:,Cat(i).Col.DELTAWIN_J2000) =nansum([InputCat(:,Cat(i).Col.DELTAWIN_J2000),resvec(:,2)/180*pi],2);
-%     InputCat(:,Cat(i).Col.ALPHAWIN_J2000) =nansum([InputCat(:,Cat(i).Col.ALPHAWIN_J2000),resvec(:,1)/180*pi],2);
     
     astcatchrom(i).Cat=InputCat;
     

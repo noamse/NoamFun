@@ -2,8 +2,8 @@ function [] = astrometry_from_catalog(varargin)
 
 % run astrometry direct from saved catalog
 
-DefV.UseCase_TranC      = {'affine_tt_cheby2_4', 100; 'affine_tt_cheby2_3', 70; 'affine_tt',          10; 'affine',             5};
-DefV.SaveDirectory='/home/noamse/astro/astrometry/data/Catalogs/Catalog_cheb1/Cat_100019/';
+DefV.UseCase_TranC      = {'affine_tt_cheby2_5',110;'affine_tt_cheby2_4', 100; 'affine_tt_cheby2_3', 70; 'affine_tt',          10; 'affine',             5};
+DefV.SaveDirectory='/home/noamse/astro/astrometry/data/Catalogs/Catalog_cheb5/Cat_100019/';
 DefV.SaveNameAstCat='AstCat_1.mat';
 DefV.StartIndex=1;
 DefV.SourceDirectory='/home/noamse/astro/astrometry/data/Catalogs/Im_100019/';
@@ -36,6 +36,7 @@ for i=1:numel(Index)
     i
     load(FileNames{i});
     S = astcat2sim(AstCatTemp);
+    %S.Header = AstCatTemp.Header;
     ImSize = [cell2mat(S.getkey('NAXIS1')) cell2mat(S.getkey('NAXIS2'))];
     if (InPar.use_astrometry)
         switch InPar.Survey
