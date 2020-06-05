@@ -1,4 +1,4 @@
-function eHead =  ghead2ehead(path,varargin)
+function eHead =  h5head2Head(path,varargin)
 
 % Convert WFAST hdf5 header to HEAD structure from the MAAT package. 
 % Each row in the cell array represent attribute from WFAST header by

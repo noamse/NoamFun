@@ -18,7 +18,7 @@ InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 S=SIM;
 
 S.Im= h5read(impath,InPar.im_h5opt);
-eHead =  ut.ghead2ehead(impath);
+eHead =  ut.h5head2Head(impath);
 S.Header= eHead.Header;
 S=populate_wcs(S);
 end
