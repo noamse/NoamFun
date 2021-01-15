@@ -76,7 +76,7 @@ for Isrc=IndexForSource
     EpochGrid       =   ACat.Cat(:,ACat.Col.JD);
 
     % Interpulate light time correction [minute]
-    LightTime = interp1(EpochGrid,LightTimeGrid,MeanEpoch);
+    LightTime = interp1(EpochGrid,LightTimeGrid,MeanEpoch,'spline');
 
     %Convert light time [min] -> [sec]
     LightTime= LightTime *60;
@@ -95,12 +95,12 @@ for Isrc=IndexForSource
 
 end
 
-Lat=interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.ObsEcLat),MeanEpoch,'nearest');
-Long=interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.ObsEcLon),MeanEpoch,'nearest');
+Lat=interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.ObsEcLat),MeanEpoch,'spline');
+Long=interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.ObsEcLon),MeanEpoch,'spline');
 Lat=Lat*pi/180;
 Long=Long*pi/180;
 
-distance = interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.Delta),MeanEpoch);
+distance = interp1(ACat.Cat(:,ACat.Col.JD),ACat.Cat(:,ACat.Col.Delta),MeanEpoch,'spline');
 MeanScanPA= MeanScanPA*pi/180;
 
 cd(oldFolder)
