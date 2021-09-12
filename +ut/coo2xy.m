@@ -14,10 +14,15 @@ end
 if ischar(Dec)
     Dec = head.Ephemeris.sex2deg(Dec);
 end
-%xy2coofun= @(xy) xy2coo_sgr(obj,[xy(1) xy(2)]);
-func = @(xy) sum(([RA Dec] - xy2coowarp(W,[xy(1) xy(2)]) ).^2); % minimization function
 
+func = @(xy) sum(([RA Dec] - xy2coowarp(W,[xy(1) xy(2)]) ).^2); % minimization function
 XY = fminsearch(func, W.WCS.CRPIX); % initial guess is middle of field
+%xy2coofun= @(xy) xy2coo_sgr(obj,[xy(1) xy(2)]);
+% In case RA,Dec are vectors
+%for i=1:numel(RA)
+%    func = @(xy) sum(([RA(i) Dec(i)] - xy2coowarp(W,[xy(1) xy(2)]) ).^2); % minimization function
+%    XY(i,:) = fminsearch(func, W.WCS.CRPIX); % initial guess is middle of field
+%end
 
 end
 

@@ -1,4 +1,4 @@
-function [S]= wfast_read2sim(impath,varargin)
+function [S]= wfast_read2sim(filenameorg,varargin)
 % Read a h5 image into a SIM object
 % 
 % Input : 
@@ -14,12 +14,16 @@ function [S]= wfast_read2sim(impath,varargin)
 DefV.im_h5opt='/images';
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
+a = copyfile(filenameorg,'/tmp/')
+
 S=SIM;
-S.Im= h5read(impath,InPar.im_h5opt);
-S.ImageFileName =impath;
+S.Im= h5read(newfile,InPar.im_h5opt);
+S.ImageFileName =filenameorg;
 eHead =  ut.h5head2Head(impath);
 S.Header= eHead.Header;
 S=populate_wcs(S);
+
+delete(newfile);
 end
 
 

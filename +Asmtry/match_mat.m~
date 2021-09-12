@@ -1,4 +1,4 @@
-function [MatchedMat,AstOut,Summary]= match_mat(AstCatalog,varargin)
+function [MatchedMat,AstOut]= match_mat(AstCatalog,varargin)
 %{
 generate the matched mat for objects with several conditions
 
@@ -15,8 +15,6 @@ DefV.MaxMagBound=14;
 DefV.MinMagBound=8;
 DefV.OnlyAstrometryUsed=false;
 DefV.Colls2return={'JD','XWIN_IMAGE','YWIN_IMAGE','MAG_PSF','ALPHAWIN_J2000','DELTAWIN_J2000'};
-DefV.JD_head = 'OBSJD';
-%DefV.Colls2return={'XWIN_IMAGE','YWIN_IMAGE','MAG_PSF','ALPHAWIN_J2000','DELTAWIN_J2000'};
 DefV.Survey = 'PTF';
 InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 if strcmp(InPar.Survey, 'ZTF')
@@ -34,11 +32,10 @@ end
 
 
 for i=1:length(AstOut)
-    AstOut(i).Cat = AstOut(i).Cat(:,1:44);
-    JD=(cell2mat(AstCatalog(i).getkey(InPar.JD_head)));
+    JD=(cell2mat(AstCatalog(i).getkey('OBSJD')));
     AstOut(i).Cat=[AstOut(i).Cat JD*ones(size(AstOut(i).Cat(:,1)))];
     AstOut(i).Col.JD=length(AstOut(i).Cat(1,:));
-    AstOut(i).ColCell=[AstOut(i).ColCell;{'JD'}];
+    AstOut(i).ColCell(end+1)=  
 end
 
 
@@ -52,7 +49,7 @@ ConditionForAppearence=Summary.Nnn>InPar.ApperaFactor*length(AstOut)...
 %ConditionForLocationY= nanmean(Res.YWIN_IMAGE,2)>InPar.ImageLowBound*InPar.ImageSize(2) & nanmean(Res.YWIN_IMAGE,2)<InPar.ImageHighBound*InPar.ImageSize(2);
 %ConditionForMagnitude= nanmean(Res.MAG_PSF,2)<InPar.MaxMagBound &nanmean(Res.MAG_PSF,2)>InPar.MinMagBound;
 CondTot=ConditionForAppearence;
-
+    
 
 for i=1:length(Colls2return)
     MatchedMat.(Colls2return{i})=Res.(Colls2return{i})(CondTot,:);

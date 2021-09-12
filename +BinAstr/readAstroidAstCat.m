@@ -8,7 +8,7 @@ k = contains(FileName,StrOFsource);
 IndexForSource = find(k~=0);
 if sum(k)==0
     fprintf('No data for this asteroid \n');
-    MeanEpochLTC=[]; MeanEpoch=[];MeanResAL=[]; MeanResAC=[];MeanScanPA=[]; Lat=[];
+    MeanEpochLTC=[]; MeanEpoch=[];MeanResAL=[]; MeanResAC=[];MeanScanPA=[]; Lat=[]; MeanResAL_err=[];
     Long=[]; distance=[];
     return;
 end
@@ -18,25 +18,26 @@ for Isrc=IndexForSource
     load(FileName{Isrc});
     if(isempty(ACat.Cat))
         fprintf('No data for this asteroid \n');
-        MeanEpochLTC=[]; MeanEpoch=[];MeanResAL=[]; MeanResAC=[];MeanScanPA=[]; Lat=[];
+        MeanEpochLTC=[]; MeanEpoch=[];MeanResAL=[]; MeanResAC=[];MeanScanPA=[]; Lat=[]; MeanResAL_err=[];
         Long=[]; distance=[];
         return;
     end
     AstNumber = ACat.UserData.number_mp;
-    obs_flag=find(AstNumber==GAIADR2sso_obs.Cat{:,GAIADR2sso_obs.Col.number_mp});
+
+    Sort_obs = sortrows(GAIADR2sso_obs.Cat,GAIADR2sso_obs.Col.observation_id);
+    Sort_orbitres = sortrows(GAIADR2sso_orbitres.Cat,GAIADR2sso_orbitres.Col.observation_id);
+    obs_flag=find(AstNumber==table2array(Sort_obs(:,GAIADR2sso_obs.Col.number_mp)));
     orbit_flag=find(AstNumber==GAIADR2sso_orbit.Cat{:,GAIADR2sso_orbit.Col.number_mp});
-    orbitres_flag=find(AstNumber==GAIADR2sso_orbitres.Cat{:,GAIADR2sso_orbitres.Col.number_mp});
+    orbitres_flag=find(AstNumber==table2array(Sort_orbitres(:,GAIADR2sso_orbitres.Col.number_mp)));
 
-
-
-    Objects_obs= GAIADR2sso_obs.Cat(obs_flag,:);
+    Objects_obs= Sort_obs(obs_flag,:);
     Objects_orbit= GAIADR2sso_orbit.Cat(orbit_flag,:);
-    Objects_orbitres= GAIADR2sso_orbitres.Cat(orbitres_flag,:);
+    Objects_orbitres= Sort_orbitres(orbitres_flag,:);
     
     %Sort all the tables by observation id
-    Objects_obs=  sortrows(Objects_obs,GAIADR2sso_obs.Col.observation_id);
+    %Objects_obs=  sortrows(Objects_obs,GAIADR2sso_obs.Col.observation_id);
     %Objects_orbit=  sortrows(Objects_orbit,GAIADR2sso_orbit.Col.observation_id)
-    Objects_orbitres = sortrows(Objects_orbitres,GAIADR2sso_orbitres.Col.observation_id);
+    %Objects_orbitres = sortrows(Objects_orbitres,GAIADR2sso_orbitres.Col.observation_id);
     
     
     Epoch0 = 2455197.5; % 2010.0 GAIA baricentric 0 point

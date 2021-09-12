@@ -52,8 +52,10 @@ truths = [];
 bounds = [];
 bounds_supplied = true;
 top_margin = 0;
-gutter = [.004 .004];
-margins = [.1 .01 .12 .01];
+%gutter = [.004 .004];
+gutter = [.01 .01];
+%margins = [.1 .01 .12 .01];
+margins = [.1 .11 .12 .11];
 if nargin > 1
     names = varargin{1};
     if ~isempty(names) && ~(iscell(names) && length(names) == nDims)
@@ -87,7 +89,8 @@ ax = nan(nDims+top_margin,nDims);
 hist_bins = 40;
 lines = 10;
 res = 2^6; % defines grid for which kde2d will compute density. must be a power of 2.
-linewidth = 1;
+linewidth = 2;
+truthmarkersize = 1;
 axes_defaults = struct('tickdirmode','manual',...
     'tickdir','out',...
     'ticklength',[.035 .035],...
@@ -118,15 +121,15 @@ for i = 1:nDims
     
     if ~isempty(truths)
         hold on
-        plot([truths(i) truths(i)], [0 1], 'k-', 'linewidth',linewidth)
+        plot([truths(i) truths(i)], [0 1], 'r--', 'linewidth',linewidth)
     end
     
     if ~isempty(names)
         if i == 1
-            ylabel(names{i});
+            ylabel(names{i},'Interpreter','latex');
         end
         if i == nDims
-            xlabel(names{i})
+            xlabel(names{i},'Interpreter','latex')
         end
     end
     
@@ -142,21 +145,19 @@ if nDims > 1
             set(gca,'xlim',bounds(:,d1),'ylim',bounds(:,d2), axes_defaults);
             
             if ~isempty(truths)
-                yl = get(gca,'ylim');
-                xl = get(gca,'xlim');
                 hold on
-                plot(xl, [truths(d2) truths(d2)],'k-', 'linewidth',linewidth)
-                plot([truths(d1) truths(d1)], yl,'k-', 'linewidth',linewidth)
+                plot(truths(d1), truths(d2),'+r', 'linewidth',truthmarkersize)
+                %plot([truths(d1) truths(d1)], yl,'k-', 'linewidth',linewidth)
             end
             if d1 == 1
                 if ~isempty(names)
-                    ylabel(names{d2})
+                    ylabel(names{d2},'Interpreter','latex')
                 end
                 set(gca,'yticklabelmode','auto')
             end
             if d2 == nDims
                 if ~isempty(names)
-                    xlabel(names{d1})
+                    xlabel(names{d1},'Interpreter','latex')
                 end
                 set(gca,'xticklabelmode','auto')
             end
@@ -198,6 +199,7 @@ function h=tight_subplot(m, n, row, col, gutter, margins, varargin)
 % Will Adler 2015
 % will@wtadler.com
 if nargin<5 || isempty(gutter)
+    %gutter = [.002, .002]; %horizontal, vertical
     gutter = [.002, .002]; %horizontal, vertical
 end
 if length(gutter)==1
@@ -207,6 +209,7 @@ elseif length(gutter) > 2
 end
 if nargin<6 || isempty(margins)
     margins = [.06 .01 .04 .04]; % L R B T
+    %margins = [.6 .1 .4 .4]; % L R B T
 end
 Lmargin = margins(1);
 Rmargin = margins(2);
