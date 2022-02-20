@@ -3,6 +3,7 @@ function path= fullpath(dirobj,ind,varargin)
 % Directory are default
 InPar = inputParser;
 addOptional(InPar,'IsFile',false);  % Default is path to directory
+addOptional(InPar,'CutDropbox',false);  % Default is path to directory
 parse(InPar,varargin{:});
 InPar = InPar.Results;
 
@@ -11,4 +12,6 @@ path= fullfile(dirobj(ind).folder,dirobj(ind).name);
 if ~InPar.IsFile
     path=[path '/'];
 end
+if InPar.CutDropbox
+    path = erase(path,'/Dropbox (Weizmann Institute)');
 end

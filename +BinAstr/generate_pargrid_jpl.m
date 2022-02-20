@@ -31,7 +31,7 @@ ParGridCol.Omega =1 ; ParGridCol.OmP =2 ; ParGridCol.Inc =3 ; ParGridCol.T =4  ;
 %minPeriod=  50/24;
 %maxPeriod=  150/24;
 %OverSampling =8;
-TimeSpan = abs(max(JPL.MeanEpochLTC_2014)-min(JPL.MeanEpochLTC_2014));
+TimeSpan = 500;%1.8*365.25abs(max(JPL.MeanEpochLTC_2014)-min(JPL.MeanEpochLTC_2014));
 %initializing the parameters grid for the degenarate case
 ParGrid.Omega       = linspace(0,2*pi,20); %[rad]6
 ParGrid.OmP         = 0.0; %[rad]

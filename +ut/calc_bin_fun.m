@@ -9,7 +9,8 @@ InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
 if isempty(InPar.edges)
     edges = linspace(min(X),max(X),InPar.Nbins);
-else 
+else
+    
     edges = InPar.edges;
 end
 
