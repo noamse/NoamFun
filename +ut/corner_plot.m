@@ -97,7 +97,13 @@ axes_defaults = struct('tickdirmode','manual',...
     'box','off',...
     'xticklabel',[],...
     'yticklabel',[]);
-% plot histograms
+
+
+axes_defaults_hist= struct('tickdirmode','manual',...
+    'tickdir','out',...
+    'ticklength',[.035 .035],...
+    'box','off');
+    % plot histograms
 for i = 1:nDims
     if ~bounds_supplied
         bounds(:,i) = [min(data(:,i)) max(data(:,i))];
@@ -113,7 +119,8 @@ for i = 1:nDims
     ax(i+top_margin,i) = tight_subplot(nDims+top_margin, nDims, i+top_margin, i, gutter, margins);
     
     h=histogram(truncated_data(:,i), hist_bins, 'normalization', 'probability', 'displaystyle', 'stairs', 'edgecolor', 'k');
-    set(gca,'xlim',bounds(:,i),'ylim', [0 max(h.Values)], axes_defaults,'ytick',[]);
+    
+    set(gca,'xlim',bounds(:,i),'ylim', [0 max(h.Values)], axes_defaults_hist);
     
     if i == nDims
         set(gca,'xticklabelmode','auto')
@@ -125,13 +132,18 @@ for i = 1:nDims
     end
     
     if ~isempty(names)
-        if i == 1
-            ylabel(names{i},'Interpreter','latex');
-        end
+        %if i == 1
+        %    ylabel(names{i},'Interpreter','latex');
+        %end
         if i == nDims
             xlabel(names{i},'Interpreter','latex')
         end
     end
+        set(gca,'YTick',[]);
+
+    yyaxis right
+    set(gca,'xlim',bounds(:,i),'ylim', [0 max(h.Values)], axes_defaults_hist);
+    yticks([max(h.Values)/2,max(h.Values)])
     
 end
 % plot projections

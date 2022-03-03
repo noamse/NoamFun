@@ -95,17 +95,21 @@ classdef catMatch< handle
             %[CM.MatchMat, Summary, N_Ep, Units] = imProc.match.matched2matrix(m_astcat, CM.RetrunCols);
             XYcol = CM.AstCat(1).colname2ind({'X','Y'});
             nanCat = nan(size(CM.RefCat.Catalog));
-                
-           [MatchedObj, UnMatchedObj, TruelyUnMatchedObj]= imProc.match.match(CM.AstCat,CM.RefCat,'ColCatX',XYcol(1)...
-                    ,'ColCatY',XYcol(2),'ColRefX',XYcol(1),'ColRefY',XYcol(2),'CooType','pix','Radius',CM.MatchRadius);
+           
+            [Result,~,~] = imProc.match.unifiedSourcesCatalog(CM.AstCat,'CooType','pix','Radius',CM.MatchRadius,'ColNamesX','X',...
+                'ColNamesY','Y');
+            Matched = imProc.match.matchedReturnCat(Result,CM.AstCat,'CooType','pix','Radius',CM.MatchRadius);
+
+           %[MatchedObj, UnMatchedObj, TruelyUnMatchedObj]= imProc.match.match(CM.AstCat,CM.RefCat,'ColCatX',XYcol(1)...
+           %         ,'ColCatY',XYcol(2),'ColRefX',XYcol(1),'ColRefY',XYcol(2),'CooType','pix','Radius',CM.MatchRadius);
                 %flagNan = ~isnan(ResM.MatchedInd(:,1));
                 %temp(ResM.MatchedInd(:,1),:) = CM.AstCat(IndCat).Catalog(ResM.MatchedInd(:,1),:);
                 
                 %CM.AstCat(IndCat).Catalog = temp;
                 
                 
-            
-            [CM.MS, Matched] = unifiedCatalogsIntoMatched(CM.MS, MatchedObj,'CooType','pix','MatchedColums',CM.MS_fields);
+            CM.MS.addMatrix(Matched,CM.RetrunCols);
+            %[CM.MS, Matched] = unifiedCatalogsIntoMatched(CM.MS, MatchedObj,'CooType','pix','MatchedColums',CM.MS_fields);
             
         end
         
