@@ -6,12 +6,12 @@ arguments
     
 end
 
-[t0,tE,u0,fs]= deal(par(1),par(2),par(3),par(4));
+[t0,mus,u0,fs]= deal(par(1),par(2),par(3),par(4));
 
 
 
 
-u = sqrt(u0.^2+((t-t0)./tE).^2);
+u = sqrt(u0.^2+((t-t0).*mus).^2);
 A = fs.*(u.^2 + 2)./(u.*sqrt(u.^2+4)) + 1-fs;
 
 
