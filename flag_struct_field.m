@@ -8,7 +8,8 @@ function st = flag_struct_field(st,Flag,varargin)
 %         
 %   Option:
 %         'Field' - Cell array of field name (string)
-%         
+%         'FlagByCol' - true to flag by column. default is false, i.e.,
+%           flag by rows.
 %   Example: st = flag_struct_field(st,Flag,'Field',{'JD','ALPHAWIN_J2000'});
 % 
 
