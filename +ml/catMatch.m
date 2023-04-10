@@ -110,7 +110,7 @@ classdef catMatch< handle
             if ~isempty(Args.FilesDirectory)
                 try
                     SetVar = readtable([Args.FilesDirectory , Args.MasterName]);
-                    CM.NormScale = abs(SetVar.CCDSEC_im_2 - SetVar.CCDSEC_im_1)/2;
+                    CM.NormScale = abs(SetVar.CCDSEC_xu - SetVar.CCDSEC_xd)/2;
                     CM.pixelshift = [CM.NormScale,CM.NormScale];
                     
                 catch
@@ -1547,7 +1547,8 @@ classdef catMatch< handle
         
         
         function Tab = source_table(CM,Args)
-            
+            % Generate a table contains astrometric and photometric
+            % measurement for specific object.
             
             arguments
                 CM;

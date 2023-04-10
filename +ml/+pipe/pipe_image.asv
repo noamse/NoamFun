@@ -4,11 +4,7 @@ function AstCat = pipe_image(ImagePath,I,Args)
 arguments
     ImagePath ;
     I = 1
-    %Args.CCDSEC_im = [400,800,400,800];
-    Args.CCDSEC_xd = 400;
-    Args.CCDSEC_xu = 800;
-    Args.CCDSEC_yd = 400;
-    Args.CCDSEC_yu = 800;
+    Args.CCDSEC_im = [400,800,400,800];
     Args.Cols2Delete=  {'X1','Y1','X2','Y2','XY','FLUXERR_APER_1'...
         ,'FLUXERR_APER_2','FLUXERR_APER_3','FLUXERR__1','FLUXERR__2'...
         ,'FLUX_APER_3','APER_AREA_1','APER_AREA_2','APER_AREA_3','SN_1',...
@@ -53,7 +49,7 @@ arguments
 end
 
 
-Im = AstroImage(ImagePath,'CCDSEC',[Args.CCDSEC_xd,Args.CCDSEC_xu,Args.CCDSEC_yd,Args.CCDSEC_yu]   );
+Im = AstroImage(ImagePath,'CCDSEC',Args.CCDSEC_im );
 Im.Image = single(Im.Image);
 
 %Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.threshold_im,'RemoveBadSources',Args.FindMeasureRemoveBad);
@@ -61,15 +57,21 @@ Im.Image = single(Im.Image);
 
 Cat= AstroCatalog;
 try
-    
+    if Args.ExtractWithRef
         
-    [Cat] = ml.pipe.mextractorIterRefcat(Im,Args.OgleCat.copy(),'FitRadius',Args.FitRadius,'HalfSize'...
-        ,Args.HalfSize,'PSFfitConvThresh',Args.PSFfitConvThresh,'PSFfitMaxIter',Args.PSFfitMaxIter...
-        ,'SNRforPSFConstruct',Args.SNRforPSFConstruct...
-        ,'NRefMagBin',Args.NRefMagBin,'FitWings',Args.FitWings...
-        ,'fitPSFKernelModel',Args.fitPSFKernelModel,'FitRadiusKernel',Args.FitRadiusKernel,'PSFSmallStep',Args.PSFSmallStep,...
-        'UseKernelPSFPhotometry',Args.UseKernelPSFPhotometry);
+        [Cat] = ml.pipe.mextractorIterRefcat(Im,Args.OgleCat.copy(),'FitRadius',Args.FitRadius,'HalfSize'...
+            ,Args.HalfSize,'PSFfitConvThresh',Args.PSFfitConvThresh,'PSFfitMaxIter',Args.PSFfitMaxIter...
+            ,'SNRforPSFConstruct',Args.SNRforPSFConstruct...
+            ,'NRefMagBin',Args.NRefMagBin,'FitWings',Args.FitWings...
+            ,'fitPSFKernelModel',Args.fitPSFKernelModel,'FitRadiusKernel',Args.FitRadiusKernel,'PSFSmallStep',Args.PSFSmallStep,...
+            'UseKernelPSFPhotometry',Args.UseKernelPSFPhotometry);
+        
+    else
+        
+        
        
+    end
+    
     
     
     
