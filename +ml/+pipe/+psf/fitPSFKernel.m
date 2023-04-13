@@ -43,7 +43,7 @@ if Args.FitWings
             
             func_min = @(x) mtd_func_min(x,PSF,Args.StampSize, fit_region_flag,w);
             a  = fminsearch(func_min ,x0);
-            Kmin = mtd(a,'StampSize',Args.StampSize);
+            Kmin = ml.pipe.psf.model.mtd(a,'StampSize',Args.StampSize);
             meas_region_flag = Rrel2>Args.FitRadius.^2;
             Kmin(~meas_region_flag) = PSF(~meas_region_flag);
             
@@ -116,7 +116,7 @@ if Args.FitWings
             
             func_min = @(x) dgauss_func_min(x,PSF,Args.StampSize, fit_region_flag,w);
             a  = fminsearch(func_min,x0);
-            Kmin = doublegauss(a(1,:),a(2,:),'StampSize',Args.StampSize);
+            Kmin = ml.pipe.psf.model.doublegauss(a(1,:),a(2,:),'StampSize',Args.StampSize);
             meas_region_flag = Rrel2>Args.FitRadius.^2;
             Kmin(~meas_region_flag) = PSF(~meas_region_flag);
     end
@@ -197,7 +197,7 @@ end
 function V = mtd_func_min(x,PSF,StampSize, fit_region_flag,w)
     
 
-    K = mtd(x,'StampSize',StampSize);
+    K = ml.pipe.psf.model.mtd(x,'StampSize',StampSize);
     V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2./w(fit_region_flag),'all');
 
 end
@@ -206,7 +206,7 @@ end
 function V = dgauss_func_min(x,PSF,StampSize, fit_region_flag,w)
     
 
-    K = doublegauss(x(1,:),x(2,:),'StampSize',StampSize);
+    K = ml.pipe.psf.model.doublegauss(x(1,:),x(2,:),'StampSize',StampSize);
     V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2./w(fit_region_flag),'all');
 
 end
