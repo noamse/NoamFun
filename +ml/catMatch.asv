@@ -350,7 +350,7 @@ classdef catMatch< handle
             arguments 
                CM;
                Args.GlobalRef=false;
-               Args.WeightByPrcVsMag = false;
+               Args.WeightByPrcVsMag = true;
                Args.OnlyMagRange=false;
                Args.OnlyOgle = false;
                Args.FlagChi2DOF = false;
@@ -360,7 +360,8 @@ classdef catMatch< handle
                Args.UseOgleCat = false;
                Args.useCovariance = false;
                Args.ArgsParCovariance = {'Gamma',-1.2,'A',0.002};
-               
+               Args.ArgParFitAffineGlobal = {'useCovariance',true,'ArgsParCovariance',{'Gamma',-1.2,'A',0.002},...
+                   'Chi2DOFWeight',false,'FlagChi2DOF',false,'PrctileRange',[20,80],'FitMaxOgleMag',[]}
  
             end
             
@@ -938,8 +939,8 @@ classdef catMatch< handle
                Args.FitDistortion = false;
                Args.MatchRadius = 1.5;
                Args.fitPatternMaxMag = [];
-               Args.OnlyOgle = true;
-               Args.ArgParFitAffineGlobal = {}
+               Args.ArgParFitAffineGlobal = {'useCovariance',true,'WeightByPrcVsMag',true,'ArgsParCovariance',{'Gamma',-1.2,'A',0.002},...
+                   'Chi2DOFWeight',false,'FlagChi2DOF',false,'PrctileRange',[20,80],'FitMaxOgleMag',[]}
             end
             
             
@@ -968,12 +969,12 @@ classdef catMatch< handle
             if Args.WeightByPrcVsMag
                 CM.resid_vs_mag_obj;
             end
-            if Args.OnlyOgle
+            if Args.AffineOnlyOgle
                 CM.match_ogle_cat;
             end
             if Args.UseGlobalRef
 
-                    CM.fit_affine('GlobalRef',true,'OnlyOgle',true,Args.ArgParFitAffineGlobal{:});
+                    CM.fit_affine('GlobalRef',true,Args.ArgParFitAffineGlobal);
                     CM.apply_affine;
                     CM.fit_pm('WeightByPrcVsMag',Args.WeightByPrcVsMag,'Chi2DOFWeight',Args.Chi2DOFWeight);
             end
