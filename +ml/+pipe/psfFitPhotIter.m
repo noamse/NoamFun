@@ -22,6 +22,24 @@ arguments
 end
 
 
+
+% Forced mode:
+% The user proived information about sources positions. Magniute/SNR values of each source is
+% optional
+% if the user want to keep the same order - make indexing column
+% waiting list - the sources which did not fitted.
+% generate new catalog with the same order as forcedCat.
+%
+% loop:
+%   run findsources for "waiting list"
+%   remove SNR>thresh from "waiting list" write to xyforced 
+%   run psfFitPhot with xy forced 
+%   
+%
+% after loop: 
+%   ask user for additional 'blind' iteration 
+%   mark 'waiting list' in the catalogs. 
+
 if Args.newImage 
     Im = ImOrg.copy();
 else
@@ -34,7 +52,13 @@ else
     vecSNR =  Args.vecSNR ;
 end
 
+xy= Args.forcedCat.getXY;
+IndexInRef = (1:numel(xy(:,1)))';
+
 Niter = numel(vecSNR);
+
+
+
 
 % if ~isempty(Args.vecMag)
 %     if ~isempty(Args.forcedCat)
@@ -50,43 +74,51 @@ Niter = numel(vecSNR);
 % end
 % 
 
-
+Im.CatData = AstroCatalog;
 for Iiter = 1:1:Niter
-    if Iiter==1 && Args.UseAstroImageCat
-        
-        flag = ~any(isnan(Im.CatData.getXY),2);
-        
-        Im.CatData.Catalog = Im.CatData.Catalog(flag,:);
-        xy = Im.CatData.getXY;
-        Im.CatData=AstroCatalog;
-        Im = imProc.sources.findSources(Im.copy(),'Psf',Im.PSF,'Threshold',vecSNR(Iiter),'ForcedList',xy );
-        Im.CatData.Catalog = Im.CatData.Catalog(Im.CatData.getCol('SN_1')>vecSNR(Iiter),:);
-    else 
-        Im.CatData
-        Im = imProc.sources.findSources(Im,'Psf',Im.PSF,'Threshold',vecSNR(Iiter),'CreateNewObj',true);
-    end
+%     if Iiter==1 && Args.UseAstroImageCat
+%         
+%         flag = ~any(isnan(Im.CatData.getXY),2);
+%         
+%         Im.CatData.Catalog = Im.CatData.Catalog(flag,:);
+%         xy = Im.CatData.getXY;
+%         Im.CatData=AstroCatalog;
+%         Im = imProc.sources.findSources(Im.copy(),'Psf',Im.PSF,'Threshold',vecSNR(Iiter),'ForcedList',xy );
+%         Im.CatData.Catalog = Im.CatData.Catalog(Im.CatData.getCol('SN_1')>vecSNR(Iiter),:);
+%     else 
+%         Im.CatData
+%         Im = imProc.sources.findSources(Im,'Psf',Im.PSF,'Threshold',vecSNR(Iiter),'CreateNewObj',true);
+%     end
+
+    % No Threshold for detection - we want to get result from all.
+    Im = imProc.sources.findSources(Im,'Psf',Im.PSF,'Threshold',vecSNR(Iiter),'OnlyForced',true,'ForcedList',xy );
     
-        
-    
-    %if ~isempty(Args.forcedCat)
-        
-        %[Im,res] = imProc.sources.psfFitPhot(Im,'XY',[XY(flag_bin,1),XY(flag_bin,2)],'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
-        %    'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
-    %    [Im,res] = imProc.sources.psfFitPhot(Im,'XY',[XY(flag_bin,1),XY(flag_bin,2)],Args.psfFitPhotArgs{:});
-        
-    %end
-    
+    %Check threshold 
+    SN = Im.CatData.getCol('SN_1');
+    flagsn = SN>=vecSNR(Iiter);
+    xytemp= xy(flagsn,:);
+    xy = xy(~flagsn,:);
+    indextemp =IndexInRef(flagsn);
+    %indexInRefTemp = IndexInRef(flagsn);
     Im.CatData.Catalog = double(Im.CatData.Catalog);
-    [Im,res] = imProc.sources.psfFitPhot(Im,'XY',Im.CatData.getXY,'PSF',Im.PSF,'HalfSize',floor(numel(Im.PSF(:,1))/2),Args.psfFitPhotArgs{:});
+    Im.CatData.Catalog = Im.CatData.Catalog(flagsn,:);
+    
+    % run psfFitPhot for the selected sources 
+    [Im,res] = imProc.sources.psfFitPhot(Im,'XY',xytemp,'PSF',Im.PSF,'HalfSize',floor(numel(Im.PSF(:,1))/2),Args.psfFitPhotArgs{:});
+    %Remove sources from image
     SrcCat = Im.CatData.getCol({'X','Y','FLUX_PSF'});
-    %SrcCat = [Im.CatData.getXY,Im.CatData.getCol('FLUX_PSF')];
-    
     flagnan = ~any(isnan(SrcCat),2);
-    %S = imUtil.art.injectSources(Im.sizeImage,SrcCat(flagnan,:),PSF,'RecenterPSF',Args.RecenterPSF);
     S = imUtil.art.injectSources(Im.sizeImage,SrcCat(flagnan,:),Im.PSF,Args.injectSourcesArgs{:});
-    
     Im = Im- S;
+    %SrcCat = [Im.CatData.getXY,Im.CatData.getCol('FLUX_PSF')];
+    %S = imUtil.art.injectSources(Im.sizeImage,SrcCat(flagnan,:),PSF,'RecenterPSF',Args.RecenterPSF);
+    
+    
+    %read catalog 
+    Im.astroImage2AstroCatalog;
+    Im.CatData.insertCol(indextemp,numel(Im.CatData.ColNames)+1,'IterNum');
     Cat(Iiter)= Im.astroImage2AstroCatalog;
+    
     Res(Iiter)=res;
     Im.CatData=AstroCatalog;
 end

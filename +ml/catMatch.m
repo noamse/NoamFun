@@ -187,7 +187,7 @@ classdef catMatch< handle
             
             Nsrc_epoch= sum(~isnan(CM.MS.Data.MAG_PSF),2);  
             MAD_std= mad(Nsrc_epoch);
-            epochs_flag = Nsrc_epoch > median(Nsrc_epoch) - 2*MAD_std | Nsrc_epoch >30;%& Nsrc_epoch >50;
+            epochs_flag = Nsrc_epoch > median(Nsrc_epoch) - 6*MAD_std & Nsrc_epoch >30;%& Nsrc_epoch >50;
             CM.MS.Data= flag_struct_field(CM.MS.Data,epochs_flag ,'FlagByCol',false);
             CM.MS.JD = CM.MS.JD(epochs_flag);
             
@@ -379,6 +379,7 @@ classdef catMatch< handle
             for i =1:CM.MS.Nepoch
                 
                 if Args.GlobalRef
+                    
                     RefCat_ast = CM.create_reference(CM.MS.JD(i),'IncludeChi2',Args.Chi2DOFWeight);
                     RefX=RefCat_ast.getCol('X');
                     RefY=RefCat_ast.getCol('Y');
@@ -453,9 +454,9 @@ classdef catMatch< handle
                 isout= isoutx|isouty;
                 %isout= false(size(isouty));
                 if Args.useCovariance
-                    wt = w(~isout,~isout);
+                    wt = wt(~isout,~isout);
                 else
-                    wt = w(~isout);
+                    wt = wt(~isout);
                 end
                 ax = lscov(Ht(~isout,:),Xt(~isout),wt);
                 ay = lscov(Ht(~isout,:),Yt(~isout),wt);
@@ -772,14 +773,22 @@ classdef catMatch< handle
             %[Res,Hra,Hdec,JD] = ml.astrometry.fit_pm_parallax_pix(Coo,JD,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx);
             for Iobj = 1:CM.MS.Nsrc
                 
-                Flag = ~isnan(CM.MS.Data.X(:,Iobj)) & ~isnan(CM.MS.Data.Y(:,Iobj));
+                
+                
+                if Args.WeightByPrcVsMag 
+                    w = (1./(CM.MS.Data.err(:,Iobj))).^2;
+                    Flag = ~isnan(CM.MS.Data.X(:,Iobj)) & ~isnan(CM.MS.Data.Y(:,Iobj)) & ~isnan(w);
+                    
+                    
+                    
+                else
+                    
+                    Flag = ~isnan(CM.MS.Data.X(:,Iobj)) & ~isnan(CM.MS.Data.Y(:,Iobj));
+                    w = ones(sizes(CM.MS.Data.X(:,Iobj)));
+                end
                 Xt = CM.MS.Data.X(Flag,Iobj);
                 Yt = CM.MS.Data.Y(Flag,Iobj);
-                if Args.WeightByPrcVsMag 
-                    w = (1./(400*CM.MS.Data.err(Flag,Iobj))).^2;
-                else
-                    w = ones(sizes(Xt));
-                end
+                w=w(Flag);
                 Coo = [Xt,Yt];
                 jd = CM.MS.JD(Flag);
                 [Res,~,Hra,Hdec,jd] = ml.astrometry.fit_pm_parallax_pix(Coo,jd ,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx,'Ecoo',Ecoo(:,Flag),'Weights',w);
@@ -1380,20 +1389,22 @@ classdef catMatch< handle
         function resid_vs_mag_obj(CM,Args)
             arguments
                 CM;
-                Args=1;
+                Args.MagBinSize = 0.3;
+                Args.minimalBinsNum =3;
             end
             err_mat = CM.resid_per_obs;
             mean_err_mat=nan(size(err_mat));
             for IndEpoch = 1:numel(CM.MS.JD)
                 mag_ep = CM.MS.Data.MAG_PSF(1,:)';
-                B = timeseries.binningFast([CM.MS.Data.MAG_PSF(IndEpoch ,:)', err_mat(IndEpoch,:)'], 0.3,[NaN NaN],{'MidBin', @median});
+                B = timeseries.binningFast([CM.MS.Data.MAG_PSF(IndEpoch ,:)', err_mat(IndEpoch,:)'], Args.MagBinSize,[NaN NaN],{'MidBin', @median});
+                
                 if (IndEpoch == 287)
                     a= 1;
                 end
                 interp_w = interp1(B(:,1),B(:,2),mag_ep ,'linear');
                 mean_err_mat(IndEpoch,:) = interp_w';
             end
-            CM.MS.Data.err = err_mat;
+            CM.MS.Data.err = mean_err_mat;
             
         end
         
@@ -1909,12 +1920,19 @@ classdef catMatch< handle
 
             pmx = CM.pm_x(2,:)'*CM.pix2mas * 365.25;
             pmy = CM.pm_y(2,:)'*CM.pix2mas * 365.25;
-            
+            mag = median(CM.MS.Data.MAG_PSF,'omitnan');
             plx = CM.plx_par(:,5)*400;
             plx(plx<0)=0;
-            
-            
+            if ~isempty(Args.MaxMag)
+                flag = mag<Args.MaxMag;
+                pmy = pmy(flag);
+                pmx= pmx(flag);
+                mag=mag(flag);
+                plx=plx(flag);
+            end
             scatter(pmx,pmy,10,plx,'filled');
+            
+            colorbar;
             
             
         end
@@ -1928,6 +1946,8 @@ classdef catMatch< handle
                 Args.ShowTitle =true;
                 Args.PlotXY = true;
                 Args.closeall=true;
+                Args.Color = [0.5,0.2,0.8];
+                
             end
             if (Args.closeall)
                 close all;
@@ -1940,17 +1960,17 @@ classdef catMatch< handle
             end
             H = pm_design_mat(CM);
             ax1=subplot(3,1,1);
-            plot(CM.MS.JD,CM.MS.Data.MAG_PSF(:,Sind),'.');
+            plot(CM.MS.JD,CM.MS.Data.MAG_PSF(:,Sind),'.','Color',Args.Color);
             ylabel('I [mag]')
             set(gca,'YDir','reverse')
             ax2= subplot(3,1,2);
-            plot(CM.MS.JD,CM.MS.Data.X(:,Sind),'.');
+            plot(CM.MS.JD,CM.MS.Data.X(:,Sind),'.','Color',Args.Color);
             hold on;
             plot(CM.MS.JD,H*CM.pm_x(:,Sind));
             ylabel('X [pix]','interpreter','latex')
             hold off;
             ax3= subplot(3,1,3);
-            plot(CM.MS.JD,CM.MS.Data.Y(:,Sind),'.');
+            plot(CM.MS.JD,CM.MS.Data.Y(:,Sind),'.','Color',Args.Color);
             hold on;
             plot(CM.MS.JD,H*CM.pm_y(:,Sind));
             ylabel('Y [pix]')
