@@ -1861,8 +1861,7 @@ classdef catMatch< handle
 
 
             if nargout<1
-                clear meanmag 
-                clear stdprc
+                clear
                 return;
             end
             

@@ -76,7 +76,8 @@ try
     
     if Cat.isemptyCatalog
         AstCat=AstroCatalog;
-        AstCat.JD = Im.HeaderData.Key.JD;
+        %AstCat.JD = Im.HeaderData.Key.JD;
+        AstCat.JD = Im.HeaderData.Key.MIDJD;
         AstCat.UserData.bad_image= true;
         AstCat.UserData.FilePath = ImagePath;
 
@@ -120,14 +121,16 @@ try
     AstCat.insertCol(pa*ones(size(AstCat.getCol(1))),1,'pa');
     AstCat.insertCol(secz*ones(size(AstCat.getCol(1))),1,'secz');
     %AstCat.insertCol(double(Res.ConvergeFlag'),1,'Convg_flag');
-    AstCat.JD = Im.HeaderData.Key.JD;
+    %AstCat.JD = Im.HeaderData.Key.JD;
+    AstCat.JD = Im.HeaderData.Key.MIDJD;
     AstCat.UserData.bad_image= false;
     AstCat.UserData.FilePath = ImagePath;
     
 catch
     
     AstCat=AstroCatalog;
-    AstCat.JD = Im.HeaderData.Key.JD;
+%    AstCat.JD = Im.HeaderData.Key.JD;
+    AstCat.JD = Im.HeaderData.Key.MIDJD;
     AstCat.UserData.bad_image= true;
     AstCat.UserData.FilePath = ImagePath;
     disp(['image ' num2str(I) ' , error while generate AstCat']);
