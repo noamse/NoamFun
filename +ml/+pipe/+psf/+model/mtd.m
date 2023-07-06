@@ -1,5 +1,7 @@
 function K = mtd(par,Args)
-
+% Multivariate T-distribution PSF.
+% example:
+% 
     arguments
         par = [nan,nan,3,3,0,3];
         %Sigma= [3,3,0];

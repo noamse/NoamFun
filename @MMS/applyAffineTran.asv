@@ -1,0 +1,18 @@
+function applyAffineTran(Obj,AffineMat,Args)
+
+arguments
+    Obj;
+    AffineMat;
+    Args.ColNameX = 'X';
+    Args.ColNameY = 'Y';
+end
+
+
+
+for Iepoch=1:Obj.Nepoch
+    Xvec  = designMatrixEpoch(Obj,EpochInd,ColNames, FunCell)
+    Xvec = [CM.MS.Data.(Args.ColNameX)(Iepoch,:);CM.MS.Data.Y(Iepoch,:);ones(size(CM.MS.Data.X(Iepoch,:)))];
+    Xtag = CM.AffineMat{Iepoch} * Xvec ;
+    CM.MS.Data.X(Iepoch,:) = Xtag(1,:);
+    CM.MS.Data.Y(Iepoch,:) = Xtag(2,:);
+end

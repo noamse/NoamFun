@@ -6,7 +6,7 @@ arguments
     Args.model = 'mtd'
     Args.ConvThresh = 1e-4
     Args.StampSize = size(PSF);
-    Args.FitRadius = [];
+    Args.FitRadius = 3;
     Args.FitWings = false;
     Args.InerRadius= [];
 end
@@ -130,7 +130,7 @@ if Args.FitWings
 else
     switch Args.model
         case 'mtd'
-            K=mtd([nan,nan,2,2,-0.1,2],'StampSize',Args.StampSize);
+            K=ml.pipe.psf.model.mtd([nan,nan,2,2,-0.1,2],'StampSize',Args.StampSize);
             
             w= 1./PSF.^2;
             if isempty(Args.p0)
@@ -149,7 +149,7 @@ else
             end
             func_min = @(x) mtd_func_min(x,PSF,Args.StampSize, fit_region_flag,w);
             a  = fminsearch(func_min ,x0);
-            Kmin = mtd(a,'StampSize',Args.StampSize);
+            Kmin = ml.pipe.psf.model.mtd(a,'StampSize',Args.StampSize);
             
             
         case 'gauss'

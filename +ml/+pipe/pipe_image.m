@@ -49,6 +49,7 @@ arguments
     Args.FitRadiusKernel=5;
     Args.PSFSmallStep=1e-5;
     Args.UseKernelPSFPhotometry = false;
+    Args.MaxRefMagForPattern= [];
         %Args.findMeasureSourcesPsfFunPar = {[0.5;  1; 2;],[8,8;8,8;8,8]};
 end
 
@@ -63,12 +64,12 @@ Cat= AstroCatalog;
 try
     
         
-    [Cat] = ml.pipe.mextractorIterRefcat(Im,Args.OgleCat.copy(),'FitRadius',Args.FitRadius,'HalfSize'...
-        ,Args.HalfSize,'PSFfitConvThresh',Args.PSFfitConvThresh,'PSFfitMaxIter',Args.PSFfitMaxIter...
+   [Cat] = ml.pipe.mextractorIterRefcat(Im,Args.OgleCat.copy(),'FitRadius',Args.FitRadius,'HalfSize'...
+        ,Args.HalfSize,'PSFfitConvThresh',Args.PSFfitConvThresh,'PSFfitmaxStep',Args.PSFfitmaxStep,'PSFfitMaxIter',Args.PSFfitMaxIter...
         ,'SNRforPSFConstruct',Args.SNRforPSFConstruct...
         ,'NRefMagBin',Args.NRefMagBin,'FitWings',Args.FitWings...
         ,'fitPSFKernelModel',Args.fitPSFKernelModel,'FitRadiusKernel',Args.FitRadiusKernel,'PSFSmallStep',Args.PSFSmallStep,...
-        'UseKernelPSFPhotometry',Args.UseKernelPSFPhotometry);
+        'UseKernelPSFPhotometry',Args.UseKernelPSFPhotometry,'ImagClip',Args.MaxRefMagForPattern);
        
     
     
@@ -77,7 +78,17 @@ try
     if Cat.isemptyCatalog
         AstCat=AstroCatalog;
         %AstCat.JD = Im.HeaderData.Key.JD;
-        AstCat.JD = Im.HeaderData.Key.MIDJD;
+        
+        if isfield(Im.HeaderData.Key,'JD')
+            AstCat.JD = Im.HeaderData.Key.JD;
+        elseif isfield(Im.HeaderData.Key,'MIDJD')
+            AstCat.JD = Im.HeaderData.Key.MIDJD;
+        else
+            disp('Did not find JD in header')
+            AstCat.JD =0;
+        end
+    
+
         AstCat.UserData.bad_image= true;
         AstCat.UserData.FilePath = ImagePath;
 
@@ -121,16 +132,31 @@ try
     AstCat.insertCol(pa*ones(size(AstCat.getCol(1))),1,'pa');
     AstCat.insertCol(secz*ones(size(AstCat.getCol(1))),1,'secz');
     %AstCat.insertCol(double(Res.ConvergeFlag'),1,'Convg_flag');
-    %AstCat.JD = Im.HeaderData.Key.JD;
-    AstCat.JD = Im.HeaderData.Key.MIDJD;
+    if isfield(Im.HeaderData.Key,'JD')
+        AstCat.JD = Im.HeaderData.Key.JD;
+    elseif isfield(Im.HeaderData.Key,'MIDJD')
+        AstCat.JD = Im.HeaderData.Key.MIDJD;
+    else
+        disp('Did not find JD in header')
+        AstCat.JD =0;
+    end
+
     AstCat.UserData.bad_image= false;
     AstCat.UserData.FilePath = ImagePath;
     
 catch
     
     AstCat=AstroCatalog;
-%    AstCat.JD = Im.HeaderData.Key.JD;
-    AstCat.JD = Im.HeaderData.Key.MIDJD;
+    if isfield(Im.HeaderData.Key,'JD')
+        AstCat.JD = Im.HeaderData.Key.JD;
+    elseif isfield(Im.HeaderData.Key,'MIDJD')
+        AstCat.JD = Im.HeaderData.Key.MIDJD;
+    else
+        disp('Did not find JD in header')
+        AstCat.JD =0;
+    end
+    
+    %AstCat.JD = Im.HeaderData.Key.MIDJD;
     AstCat.UserData.bad_image= true;
     AstCat.UserData.FilePath = ImagePath;
     disp(['image ' num2str(I) ' , error while generate AstCat']);

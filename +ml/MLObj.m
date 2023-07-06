@@ -1,4 +1,4 @@
-classdef catMatch< handle
+classdef MLObj< handle
     
     % Astronomical image from a certain field matching.
     % This class used to solve relative astrometry of observed astronomical
@@ -26,11 +26,11 @@ classdef catMatch< handle
         isPixScaled = 0;
         % properties for MatchCat
         MatchRadius = 1; %
-        %         ReturnCols = {'X','Y','MAG_CONV_'...
+        %         RetrunCols = {'X','Y','MAG_CONV_'...
         %             ,'SN_1','FLUX_CONV_1','MAGERR_CONV_1'...
         %            };%,'MAGERR_PSF'};
-        %ReturnCols = {'X','Y','MAG_PSF' ,'SN_3' ,'FLUX_PSF','MAGERR_APER_3'...
-        ReturnCols = {'X','Y','MAG_PSF' ,'FLUX_PSF'...
+        %RetrunCols = {'X','Y','MAG_PSF' ,'SN_3' ,'FLUX_PSF','MAGERR_APER_3'...
+        RetrunCols = {'X','Y','MAG_PSF' ,'FLUX_PSF'...
             ,'fwhm','secz','pa','PSF_CHI2DOF','SN','RefMag'};%,'MAGERR_PSF'};
         Match_Summary;
         Match_N_Ep;
@@ -93,7 +93,7 @@ classdef catMatch< handle
     methods % Constructor
         
 
-        function CM = catMatch(AstCat,Args)
+        function CM = MLObj(AstCat,Args)
             arguments
                AstCat;
                Args.FilesDirectory=[];
@@ -174,7 +174,7 @@ classdef catMatch< handle
             
             Matched = imProc.match.matchedReturnCat(CM.RefCat,CM.AstCat,'CooType','pix','Radius',Args.MatchRadius);
             
-            CM.MS.addMatrix(Matched,CM.ReturnCols);
+            CM.MS.addMatrix(Matched,CM.RetrunCols);
 
             
         end
@@ -211,7 +211,8 @@ classdef catMatch< handle
             
             
         end
-        
+
+%{
         function fit_pattern(CM,Args)
             % Fit pattren of the AstroCatalog array with respect to the
             % reference image, This procedure is rough with steps of 0.1
@@ -261,6 +262,10 @@ classdef catMatch< handle
             
         end
         
+        
+%}
+
+%{
         function CM = clear_pattern_failed(CM)
             disp([num2str(numel(CM.Pattern_failed)) '/' num2str(numel(CM.AstCat)) ...
                 ' epochs were rejected via clear_pattern_failed' ])
@@ -271,6 +276,7 @@ classdef catMatch< handle
             end
             
         end
+%}
         
         function CM = apply_shift_scale(CM)
             % Scale and shift the pixel coordinates to avoid nomerical
@@ -731,7 +737,9 @@ classdef catMatch< handle
             H = [ones(size(CM.MS.JD)),CM.MS.JD - CM.RefJD];
             CM.revert_shift_scale;
             for Iobj = 1:CM.MS.Nsrc
-
+                if Iobj ==23
+                    a=11;
+                end
                 flux = CM.MS.Data.FLUX_PSF(:,Iobj);
                 
                 if Args.WeightByPrcVsMag
@@ -1027,8 +1035,10 @@ classdef catMatch< handle
             CM.MS.JD=[CM.AstCat.JD]';
             
             disp(['Finish catMatch construction'])
-            CM.fit_pattern('MaxMag',Args.fitPatternMaxMag); 
-            CM.clear_pattern_failed;CM.apply_pattern;
+            %CM.fit_pattern('MaxMag',Args.fitPatternMaxMag); 
+            CM.matchPattern('MaxMag',Args.fitPatternMaxMag)
+            %CM.clear_pattern_failed;CM.apply_pattern;
+            ml.MLObj.flag.flagPattenFail;
             %CM.fit_pattern_match; CM.clear_pattern_failed;
             disp(['Finish pattern match'])
             try
@@ -1578,85 +1588,6 @@ classdef catMatch< handle
             
         end
         
-%         function fit_pattern_match(CM,Args)
-%             
-%             % Fit pattren of the AstroCatalog array with respect to the
-%             % reference image, This procedure is rough with steps of 0.1
-%             % pixels.
-%             
-%             arguments
-%                 CM;
-%                 %IndCat (1,1) numeric;
-%                 Args.SearchRadius=1.5;
-%                 Args.HistRotEdges= (-90:0.2:90);
-%                 Args.RangeX = [-100.25,100.25];
-%                 Args.RangeY = [-100.25,100.25];
-%                 Args.StepX = 0.5;
-%                 Args.StepY = 0.5;
-%                 
-%                 
-%                 Args.SearchRadius_sec=1;
-%                 Args.HistRotEdges_sec= (-1:0.002:1);
-%                 Args.RangeX_sec = [-1.5,1.5];
-%                 Args.RangeY_sec = [-1.25,1.25];
-%                 Args.StepX_sec = 0.01;
-%                 Args.StepY_sec = 0.01;
-%                 
-%             end
-%             
-%             
-%             for IndCat=1:numel(CM.AstCat)
-%                 try
-%                     [II] = imProc.trans.fitPattern(CM.RefCat,CM.AstCat(IndCat),'StepX',Args.StepX ,'StepY',Args.StepY ,...
-%                         'RangeX',Args.RangeX ,'RangeY',Args.RangeY ,'SearchRadius',Args.SearchRadius,'HistRotEdges',Args.HistRotEdges,...
-%                         'MaxMethod','max1');
-%                     [NewX,NewY]=imUtil.cat.affine2d_transformation(CM.AstCat(IndCat).Catalog,II.Sol.AffineTran{1},'+'...
-%                         ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
-%                     CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('X'))=NewX;
-%                     CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('Y'))=NewY;
-%                     
-%                     Matched = imProc.match.matchedReturnCat(CM.RefCat,CM.AstCat(IndCat),'CooType','pix','Radius'...
-%                         ,Args.MatchRaiud);
-%                     XY1 = Matched.getCol({'X','Y'});
-%                     XY2 = CM.RefCat.getCol({'X','Y'});
-%                     
-%                     chi2dof = Matched(1).getCol('PSF_CHI2DOF');
-%                     %flag_pdf_fit = chi2dof>10;
-%                     
-%                     D= sqrt((XY1(:,1) - XY2(:,1)').^2 + (XY1(:,2) - XY2(:,2)').^2);
-%                     isoutx = isoutlier(XY1(:,1)- XY2(:,1));%,'percentile',[10,90]);
-%                     isouty = isoutlier(XY1(:,2)- XY2(:,2));%,'percentile',[10,90]);
-%                     
-%                     
-%                     %flag_dist = ones(size(sum(D<15,2)==1));
-%                     %flag_dist = sum(D<3,2)==1;
-%                     
-%                     % First selection
-%                     
-%                     Matched.Catalog(~flag_dist | isoutx | isouty ,:) = ...
-%                         nan(size(Matched.Catalog(~flag_dist | isoutx | isouty ,:)));
-%                     
-%                     [II] = imProc.trans.fitPattern(CM.RefCat,Matched,'StepX',Args.StepX_sec ,'StepY',Args.StepY_sec ,...
-%                         'RangeX',Args.RangeX_sec ,'RangeY',Args.RangeY_sec,'SearchRadius',Args.SearchRadius_sec,'HistRotEdges',Args.HistRotEdges_sec,...
-%                         'MaxMethod','max1');
-%                     [NewX,NewY]=imUtil.cat.affine2d_transformation(Matched.Catalog,II.Sol.AffineTran{1},'+'...
-%                         ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
-%                     Matched.Catalog(:,Matched.colname2ind('X'))=NewX;
-%                     Matched.Catalog(:,Matched.colname2ind('Y'))=NewY;
-%                     CM.AstCat(IndCat) = Matched;
-%                     
-%                     
-%                     
-%                     
-%                     CM.PatternMat{IndCat} =II.Sol.AffineTran;
-%                 catch
-%                     CM.Pattern_failed= [CM.Pattern_failed,IndCat];
-%                     CM.PatternMat{IndCat}= {};
-%                 end
-%             end
-%             
-%             
-%         end
         
         
         

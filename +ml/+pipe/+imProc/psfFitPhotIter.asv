@@ -43,7 +43,6 @@ if Args.NRefMagBin<2
     N=1;
     loc= ones(size(MAG));
 end
-Cat=AstroCatalog;
 for Ibin = 1:numel(N)
     flag_bin = loc == Ibin;
     if sum(flag_bin)==0

@@ -1,0 +1,58 @@
+% load image 
+impth = '/data2/KMTNetGUEST/events/160014/KB160014_2019_CTIO_I_BLG02/RAW/C19217I1971.fits';
+%impth = '/data1/noamse/LAST_pipe/images/LAST.01.01.01_20220926.215003.042_clear_010+00_025_001_001_sci_raw_Image_1.fits';
+%impth = '/data1/noamse/LAST_pipe/proc/LAST.01.04.01_20230523.214902.204_clear_204+13_020_001_012_sci_proc_Image_1.fits';
+Im = AstroImage(impth );   
+Im.Image=single(Im.Image);   
+Im = imProc.sources.findMeasureSources(Im,'Threshold',6,'RemoveBadSources',true);
+Im = imProc.psf.constructPSF(Im,'HalfSize',10);
+[~,Kmin] = ml.pipe.psf.fitPSFKernel(Im.PSF,'model','mtd','FitWings',true,'FitRadius',4,'InerRadius',2);
+Im.PSFData.Data = Kmin;
+%% Create reference for forced photometry
+RefTab = ml.kmt.read_kmt9k_cat(impth,'MaxMag',17.5);
+Isort = (sort(RefTab(:,3)));
+MaxI = Isort(round(numel(Im.CatData.Catalog(:,1))*1.1));
+[NewX,NewY,PatternMat]= ml.kmt.match_kmt9k_Pattern(Im.CatData,RefTab,'Range',[-500,500],'MaxMag',MaxI);
+RefTab(:,[1,2]) =[NewX,NewY];
+
+%ColName = {'DB_no','X','Y','Xchip','Ychip','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
+ColName9K = {'X','Y','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
+ogle_cat = AstroCatalog({RefTab},'ColNames',ColName9K);
+
+flag = ogle_cat.getCol('X') < Im.sizeImage & ogle_cat.getCol('X') >= 1 ...
+    & ogle_cat.getCol('Y') < Im.sizeImage & ogle_cat.getCol('Y') >=1; 
+ogle_cat.Catalog = ogle_cat.Catalog(flag,:);
+
+%% Run the test
+
+%[Cat,Imnew,Res] = ml.pipe.psfFitPhotIterForce(Im,'forcedCat',ogle_cat,'vecSNR',[500,100,50,20,10]);
+%[CatAll,Imnew,Res,CatIter] = ml.pipe.psfFitPhotIterForce(Im,ogle_cat,'MagThreshold',[14,15,16,17,18],'MagColName','I','additionalIteration',false,...
+%    'psfFitPhotArgs',{'psfPhotCubeArgs',{'MaxStep',1,'MaxIter',50,'SmallStep',1e-3,'FitRadius',2}},'MaxDistFromRef',4);
+[CatAll,Imnew] = ml.pipe.psfFitPhotIterForce(Im,ogle_cat,'MagThreshold',[14,15,16,17,18],'MagColName','I','additionalIteration',false,...
+        'psfFitPhotArgs',{'psfPhotCubeArgs',{'MaxStep',1,'MaxIter',50,'SmallStep',1e-3,'FitRadius',2}},'MaxDistFromRef',4,'OutType','astrocatalog');
+%CatAll = Cat.merge;
+xy = CatIter(2).getCol({'X','Y'});
+xy = xy(~any(isnan(xy),2),:);
+D= sqrt(abs(CatAll.getCol('RefX') -  CatAll.getCol('X')).^2 +abs(CatAll.getCol('RefY') -  CatAll.getCol('Y')).^2);
+CatAll.Catalog = CatAll.Catalog(D<10,:);
+%ds9(Im,1);ds9.plot(xy);ds9(Imnew,2);ds9.plot(xy)
+%%
+
+
+Im.CatData = AstroCatalog;
+[Im,Imnew] = ml.pipe.psfFitPhotIter(Im,'Threshold',[400,100,5],...
+    'psfFitPhotArgs',{'psfPhotCubeArgs',{'MaxStep',0.1,'MaxIter',20,'SmallStep',4e-5,'FitRadius',2}});
+%CatAll = Cat.merge;
+
+xy = Im.CatData.getCol({'X','Y'});
+flagnan = ~any(isnan(xy),2);
+N = Im.CatData.getCol('PSF_ITER');
+flag = flagnan;% & N==1;
+xy = xy(flag,:);
+
+
+%%
+[Cat,~]=  ml.pipe.imProc.psfFitPhotIter(Im.copy(),'XY',[ogle_cat.getCol({'X','Y'})],'PSF',Im.PSF...
+    ,'MAG',Imag(flag_out_of_bound),'NRefMagBin',Args.NRefMagBin,'FitRadius',Args.FitRadius,...
+    'HalfSize',Args.HalfSize,'UseSourceNoise',Args.UseSourceNoise,'PSFfitMaxIter',Args.PSFfitMaxIter,'PSFfitConvThresh',Args.PSFfitConvThresh,...
+    'RecenterPSF',Args.RecenterPSF,'ReCalcBack',Args.ReCalcBack);

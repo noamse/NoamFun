@@ -1,7 +1,7 @@
 function RefTab = read_kmt9k_cat(imagePath,Args)
 arguments  
     imagePath;
-    Args.CatalogDir = '/home/noamse/KMT/data/Catalogs/';
+    Args.CatalogDir = '/home/noamse/astro/KMT_ML/data/Catalogs9K/';
     Args.XCol = 1;
     Args.YCol = 2;
     Args.MagCol = 3; 
@@ -72,8 +72,8 @@ RefTab = RefTab(any(RefTab,2),:);
 RefTab(:,[Args.XCol,Args.YCol]) = RefTab(:,[Args.XCol,Args.YCol]) - [CCDSEC(1),CCDSEC(3)];
 if Args.Verbose 
     disp('-------------------------');
-    disp([fieldname ' ' ccdname ', CCDSEC - [' num2str(CCDSEC) ']'])
-    disp([numel(RefTab(:,1)), ' was readed from 9K cat']);
+    disp([fieldname ' ' ccdname ', CCDSEC - [' num2str(reshape(CCDSEC,1,[])) ']'])
+    disp([num2str(numel(RefTab(:,1))), ' rows readed from 9K cat']);
     disp('-------------------------');
 end
 

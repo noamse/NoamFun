@@ -18,7 +18,7 @@ classdef catMatch< handle
         AstWCS = AstroWCS;
         MatchMat =[];
         RefCat=[];
-        RefCat_pm=[];
+        RefCatInd = 10;
         pixscale= 0.4; % arcsec/pix
         NormScale =300;
         pix2mas
@@ -31,7 +31,7 @@ classdef catMatch< handle
         %            };%,'MAGERR_PSF'};
         %RetrunCols = {'X','Y','MAG_PSF' ,'SN_3' ,'FLUX_PSF','MAGERR_APER_3'...
         RetrunCols = {'X','Y','MAG_PSF' ,'FLUX_PSF'...
-            ,'fwhm','secz','pa','PSF_CHI2DOF','SN'};%,'MAGERR_PSF'};
+            ,'fwhm','secz','pa','PSF_CHI2DOF','SN','RefMag'};%,'MAGERR_PSF'};
         Match_Summary;
         Match_N_Ep;
         MS = [];
@@ -44,6 +44,7 @@ classdef catMatch< handle
         unMatchFlag=[];
         % propertied for fit_pattern
         OgleCat = AstroCatalog; 
+        RefMagColName = 'RefMag';
         PatternMat = {};
         Pattern_failed=[];
         FitPattern_step= 0.125;
@@ -66,7 +67,7 @@ classdef catMatch< handle
         % zero point fiting
         zp=[]
         pm_err_prctl=50;
-        
+        FlagOutZP = [];
         % proper motion
         pm_x=[]
         pm_y=[]
@@ -147,7 +148,7 @@ classdef catMatch< handle
         function Ref = get.RefCat(CM)
 
             if isempty(CM.RefCat)
-                Ref = CM.AstCat(1);
+                Ref = CM.AstCat(CM.RefCatInd);
             else
                 Ref=CM.RefCat;
             end
@@ -167,7 +168,7 @@ classdef catMatch< handle
         function matchCat(CM,Args)
             arguments
                CM;
-               Args.MatchRadius = 2; 
+               Args.MatchRadius = 1; 
                 
             end
             
@@ -178,11 +179,18 @@ classdef catMatch< handle
             
         end
         
-        function clear_unmatched(CM)
+        function clear_unmatched(CM,Args)
+            arguments
+                CM
+                Args.MinimumSourcePerEpoch =150;
+                Args.minimalPrctileForSource = 10;
+                Args.NumberOfMadDeviation = 4;
+                Args.FactorForMedian = 0.9;
+            end
             % clear unmatched sources using an appearence criteria
             
             %CM.unMatchFlag =sum(~isnan(CM.MS.Data.X))>numel(CM.MS.JD)*CM.ApearenceFactor;
-            CM.unMatchFlag =sum(~isnan(CM.MS.Data.X))> prctile(sum(~isnan(CM.MS.Data.X)),5);
+            CM.unMatchFlag =sum(~isnan(CM.MS.Data.X))> prctile(sum(~isnan(CM.MS.Data.X)),Args.minimalPrctileForSource);
             
             disp([num2str(sum(~CM.unMatchFlag)) '/' num2str(numel(CM.unMatchFlag)) ...
                 ' sources were rejected via clear_unmatched' ])
@@ -190,7 +198,7 @@ classdef catMatch< handle
             
             Nsrc_epoch= sum(~isnan(CM.MS.Data.MAG_PSF),2);  
             MAD_std= mad(Nsrc_epoch);
-            epochs_flag = Nsrc_epoch > 0.95*median(Nsrc_epoch) - 6*MAD_std & Nsrc_epoch >30;%& Nsrc_epoch >50;
+            epochs_flag = Nsrc_epoch > Args.FactorForMedian *median(Nsrc_epoch) - Args.NumberOfMadDeviation *MAD_std & Nsrc_epoch >Args.MinimumSourcePerEpoch;%& Nsrc_epoch >50;
             CM.MS.Data= flag_struct_field(CM.MS.Data,epochs_flag ,'FlagByCol',false);
             CM.MS.JD = CM.MS.JD(epochs_flag);
             disp([num2str(sum(~epochs_flag)) '/' num2str(numel(epochs_flag)) ...
@@ -210,14 +218,14 @@ classdef catMatch< handle
             % pixels.
             arguments
                 CM;
-                Args.SearchRadius =1;
+                Args.SearchRadius =0.2;
                 Args.MaxMethod = 'max1';
-                Args.Step = 0.25;
-                Args.Range = [-30.5,30.5]
+                Args.Step = 0.2;
+                Args.Range = [-20.5,20.5]
                 Args.MaxMag = [];
             end
             if ~isempty(Args.MaxMag)
-                flagMagRef = CM.RefCat.getCol('RefMag')<Args.MaxMag;
+              flagMagRef = CM.RefCat.getCol(CM.RefMagColName)<Args.MaxMag;
                 xyref= CM.RefCat.getCol({'X','Y'});
                 xyref = xyref(flagMagRef,:);
             end
@@ -225,7 +233,7 @@ classdef catMatch< handle
                 try
                     if ~isempty(Args.MaxMag)
                         
-                        flagMaAstCat= CM.AstCat(IndCat).getCol('RefMag')<17;
+                        flagMaAstCat= CM.AstCat(IndCat).getCol('RefMag')<Args.MaxMag;
                         xyastcat = CM.AstCat(IndCat).getCol({'X','Y'});
                         [II] = imProc.trans.fitPattern(xyref,xyastcat(flagMaAstCat,:),'StepX',Args.Step,'StepY',Args.Step,...
                             'RangeX',Args.Range,'RangeY',Args.Range,'SearchRadius',Args.SearchRadius,'HistRotEdges',(-90:0.2:90),...
@@ -361,15 +369,14 @@ classdef catMatch< handle
                Args.WeightByPrcVsMag = false;
                Args.OnlyMagRange=false;
                Args.OnlyOgle = false;
-               Args.FlagChi2DOF = false;
-               Args.Chi2DOFWeight = false;
+               Args.WeightBySN = false;
                Args.PrctileRange = [20,80];
                Args.FitMaxOgleMag= [];
                Args.UseOgleCat = false;
                Args.useCovariance = false;
                Args.ArgsParCovariance = {'Gamma',-1.2,'A',0.002};
-               
- 
+               Args.MaxRefMag = [];
+               Args.RefMagCol = 'RefMag';
             end
             
             X = CM.MS.Data.X';
@@ -388,7 +395,7 @@ classdef catMatch< handle
                 
                 if Args.GlobalRef
                     
-                    RefCat_ast = CM.create_reference(CM.MS.JD(i),'IncludeChi2',Args.Chi2DOFWeight);
+                    RefCat_ast = CM.create_reference(CM.MS.JD(i));
                     RefX=RefCat_ast.getCol('X');
                     RefY=RefCat_ast.getCol('Y');
                 end
@@ -399,14 +406,13 @@ classdef catMatch< handle
                 
                 
                 FLUX_PSF = CM.MS.Data.FLUX_PSF(i,:)';
-                %if Args.Chi2DOFWeight % Based on chi^2
-                %    PSF_CHI2DOF = CM.MS.Data.PSF_CHI2DOF(i,:)';
-                %    w = (PSF_CHI2DOF./FLUX_PSF.^2).^(-1);        
                 if Args.WeightByPrcVsMag % Based on residuals
                     
                     w = (1./CM.MS.Data.err(i,:)').^2;
                     
-                else % No weight
+                elseif Args.WeightBySN % No weight
+                    w = (CM.MS.Data.SN(i,:)').^2;
+                else
                     w = ones(size(FLUX_PSF));
                 end
                 
@@ -429,7 +435,6 @@ classdef catMatch< handle
                     Imag = Imag(CM.matched_flag_ogle_cat);
                 end
 
-                    
                 
                 
                 
@@ -453,6 +458,7 @@ classdef catMatch< handle
                 else
                     wt = w(Flag);
                 end
+                
                 ax = lscov(Ht,Xt,wt);
                 ay = lscov(Ht,Yt,wt);
                 
@@ -547,8 +553,6 @@ classdef catMatch< handle
                 Args.GlobalRef=true;
                 Args.WeightByPrcVsMag = true;
                 Args.OnlyMagRange=false;
-                Args.FlagChi2DOF = false;
-                Args.Chi2DOFWeight = true;
                 Args.PrctileRange = [20,80];
                 Args.IncludeChi2 = false;
                 Args.flag_pm_err= false;
@@ -567,19 +571,8 @@ classdef catMatch< handle
                 RefY=(RefCat_ast.getCol('Y')-CM.pixelshift(2))/CM.NormScale;
                 H = CM.distortion_design_matrix(i,CM.DistortionOrder,'flag_pm_err',Args.flag_pm_err);
                 MAG_PSF=CM.MS.Data.MAG_PSF(i,:)';
-                if Args.IncludeChi2
-
-                    
-                    PSF_CHI2DOF = CM.MS.Data.PSF_CHI2DOF(i,:)';
-                    FLUX_PSF = CM.MS.Data.FLUX_PSF(i,:)';
-                    w = (PSF_CHI2DOF./FLUX_PSF.^2).^(-1); 
-                    Result  = timeSeries.bin.binningFast([MAG_PSF,1./w], 0.3,[NaN NaN],{'MidBin', @median, @tools.math.stat.rstd});
-                    interp_1ow = interp1(Result(:,1),Result(:,2),MAG_PSF);
-                    interp_std = interp1(Result(:,1),Result(:,3),MAG_PSF,'nearest');
-                    Flag = ~isnan(RefX)...
-                    &~isnan(RefY) & ~isnan(w) &w>0 & interp_1ow +interp_std>1./w;
-
-                elseif Args.WeightByPrcVsMag
+                
+                if Args.WeightByPrcVsMag
                     
                     w = 1./(CM.pix2mas*CM.MS.Data.err(i,:)').^2;
                     Flag = ~isnan(RefX)  &~isnan(RefY) & ~isnan(w) &w>0 ; 
@@ -667,7 +660,7 @@ classdef catMatch< handle
             RefCat_ast = CM.create_reference(CM.MS.JD(1),'IncludeChi2',Args.IncludeChi2);
             
             [Result_aff] = imProc.trans.fitPattern(RefCat_ast.getCol({'X','Y'}),CM.OgleCat.getCol({'X','Y'}),'Scale',[0.8,1.2]...
-                ,'RangeX',[-15,15],'RangeY',[-15,15],'StepX',0.05,'StepY',0.05,'MaxMethod','max1','SearchRadius',Args.PatternFitSearchRadius ,'Flip',[1 1]);
+                ,'RangeX',[-200,200],'RangeY',[-200,200],'StepX',0.05,'StepY',0.05,'MaxMethod','max1','SearchRadius',Args.PatternFitSearchRadius ,'Flip',[1 1]);
             [NewX,NewY]=imUtil.cat.affine2d_transformation(CM.OgleCat.getCol({'X','Y'}),Result_aff.Sol.AffineTran{1},'+'...
                 ,'ColX',1,'ColY',2);
             CM.OgleCat.Catalog(:,CM.OgleCat.colname2ind({'X','Y'})) = [NewX,NewY];    
@@ -725,8 +718,9 @@ classdef catMatch< handle
                 CM
                 Args.laterFlag=false;
                 Args.JDlater=2458150 ;
-                Args.Chi2DOFWeight = false;
                 Args.WeightByPrcVsMag= false;
+                Args.movWindowSize = 50;
+                
             end
 
             %H =
@@ -737,12 +731,14 @@ classdef catMatch< handle
             H = [ones(size(CM.MS.JD)),CM.MS.JD - CM.RefJD];
             CM.revert_shift_scale;
             for Iobj = 1:CM.MS.Nsrc
+                if Iobj ==23
+                    a=11;
+                end
                 flux = CM.MS.Data.FLUX_PSF(:,Iobj);
-                if Args.Chi2DOFWeight
-                    chi2dof= CM.MS.Data.PSF_CHI2DOF(:,Iobj);
-                    w= (flux.^2./chi2dof);
-                elseif Args.WeightByPrcVsMag
+                
+                if Args.WeightByPrcVsMag
                     w = (1./CM.MS.Data.err(:,Iobj)).^2;
+                    w(isoutlier(w))=mean(w);
                 else
                     w= ones(size(flux));
                 end
@@ -755,13 +751,20 @@ classdef catMatch< handle
                 Yt = CM.MS.Data.Y(Flag,Iobj);
                 wt = w(Flag);
                 Ht = H(Flag,:);
-
-                %fwhm = CM.MS.Data.fwhm(Flag,Iobj);
-                fit_parx= lscov(H(Flag,:),Xt ,wt);
-                fit_pary= lscov(H(Flag,:),Yt,wt);
+                outx = isoutlier(Xt,'movmean',Args.movWindowSize);
+                outy = isoutlier(Yt,'movmean',Args.movWindowSize);
                 
-                [~ ,rm_clip_x] = rmoutliers(Ht*fit_parx - Xt,'percentiles',[10,90]);
-                [~ ,rm_clip_y] = rmoutliers(Ht*fit_pary - Yt,'percentiles',[10,90]);
+                out = outx | outy;
+                Xt = Xt(~out);
+                Yt = Yt(~out);
+                wt = wt(~out);
+                Ht = Ht(~out,:);
+                %fwhm = CM.MS.Data.fwhm(Flag,Iobj);
+                fit_parx= lscov(Ht,Xt ,wt);
+                fit_pary= lscov(Ht,Yt,wt);
+                
+                [~ ,rm_clip_x] = rmoutliers(Ht*fit_parx - Xt,'percentiles',[5,95]);
+                [~ ,rm_clip_y] = rmoutliers(Ht*fit_pary - Yt,'percentiles',[5,95]);
                 clip = rm_clip_y | rm_clip_x;
                 
                 [CM.pm_x(:,Iobj),CM.pm_x_err(:,Iobj)] = lscov(Ht(~clip,:),Xt(~clip),wt (~clip));
@@ -771,7 +774,7 @@ classdef catMatch< handle
         end
         
 
-        function fit_pm_plx(CM,Args)
+        function  fit_pm_plx(CM,Args)
             % Fit proper motion and parallaxes for the relative astrometry
             % solution, i.e, measuren in pixels where the X axis is
             % parallel to the right ascesion and Y to declination.
@@ -782,11 +785,20 @@ classdef catMatch< handle
                 Args.SigmaClip=false;
                 Args.RefJD; % default is j2000
                 Args.WeightByPrcVsMag = false;
+                Args.WindowSize = 15;
+                Args.TimeBinSize = 6;
+                Args.BinObservations = false;
             end
-
             
-            [Ecoo,~] = celestial.SolarSys.calc_vsop87(CM.MS.JD, 'Earth', 'e', 'E');
+            
+            if isempty(Args.ra_dec_ref)
+                Args.ra_dec_ref = median(CM.OgleCat.getCol({'RA','Dec'}),'omitnan')*180/pi;
+                
+            end
+            
+            
             %[Res,Hra,Hdec,JD] = ml.astrometry.fit_pm_parallax_pix(Coo,JD,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx);
+            
             for Iobj = 1:CM.MS.Nsrc
                 
                 
@@ -800,35 +812,79 @@ classdef catMatch< handle
                 else
                     
                     Flag = ~isnan(CM.MS.Data.X(:,Iobj)) & ~isnan(CM.MS.Data.Y(:,Iobj));
-                    w = ones(sizes(CM.MS.Data.X(:,Iobj)));
+                    w = ones(size(CM.MS.Data.X(:,Iobj)));
                 end
+                
+                
+                
                 Xt = CM.MS.Data.X(Flag,Iobj);
                 Yt = CM.MS.Data.Y(Flag,Iobj);
                 w=w(Flag);
-                Coo = [Xt,Yt];
                 jd = CM.MS.JD(Flag);
-                [Res,~,Hra,Hdec,jd] = ml.astrometry.fit_pm_parallax_pix(Coo,jd ,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx,'Ecoo',Ecoo(:,Flag),'Weights',w);
+                
+                if Args.BinObservations
+                    H = pm_design_mat(CM);
+                    H = H(Flag,:);
+                    dx = (H*CM.pm_x(:,Iobj)-Xt);
+                    dy = (H*CM.pm_y(:,Iobj)-Yt);
+                    outx=isoutlier(dx,'movmedian',Args.WindowSize);
+                    outy=isoutlier(dy,'movmedian',Args.WindowSize);
+                    
+                    flag= ~outx & ~outy;
+                    Bx = timeSeries.bin.binningFast([jd(flag), Xt(flag)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                    By = timeSeries.bin.binningFast([jd(flag), Yt(flag)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                    flagemptynan = ~(Bx(:,2)==0 | isnan(Bx(:,2)) | By(:,2)==0 | isnan(By(:,2))) ;
+                    Bx = Bx(flagemptynan ,:);
+                    By = By(flagemptynan ,:);
+                    
+                    Xt = Bx(:,2);
+                    Yt = By(:,2);
+                    jd = Bx(:,1);
+                    w  = Bx(:,3);
+%                     errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+%                     hold on;
+%                     plot(CM.MS.JD-2450000,H*CM.pm_x(:,Sind));
+%                     ylabel('X [pix]','interpreter','latex')
+%                     xlabel('JD','interpreter','latex');
+%                     subplot(2,1,2);
+%                 
+%                     dy = (H*CM.pm_y(:,Sind)-CM.MS.Data.Y(:,Sind)).*CM.pix2mas;
+%                     out=isoutlier(dy);
+%                     B = timeSeries.bin.binningFast([CM.MS.JD(~out)-2450000, CM.MS.Data.Y(~out,Sind)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+%                     flag = ~(B(:,2)==0 | isnan(B(:,2)));
+%                     errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+                end
+                
+                
+                
+                
+                
+                
+                
+                Coo = [Xt,Yt];
+                [Ecoo,Vel] = celestial.SolarSys.calc_vsop87(jd, 'Earth', 'e', 'E');
+                [Res,Err,Hra,Hdec,jd] = ml.astrometry.fit_pm_parallax_pix(Coo,jd ,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx,'Ecoo',Ecoo,'Weights',w);
                 
                 %fwhm = CM.MS.Data.fwhm(Flag,Iobj);
                 %fit_parx= lscov(H(Flag,:),CM.MS.Data.X(Flag,Iobj),1./fwhm.^2);
                 %fit_pary= lscov(H(Flag,:),CM.MS.Data.Y(Flag,Iobj),1./fwhm.^2);
                 
-                [~ ,rm_clip_x] = rmoutliers(Hra*Res - Xt,'percentiles',[5,95]);
-                [~ ,rm_clip_y] = rmoutliers(Hdec*Res - Yt,'percentiles',[5,95]);
-                clip = rm_clip_y | rm_clip_x;
-                
-                
-                Coo = Coo(~clip,:);
-                jd = jd(~clip);
-                
-                ecoo_temp = Ecoo(:,Flag);
-                ecoo_temp = Ecoo(:,~clip);
-                w= w(~clip);
-                [Res,Err,Hra,Hdec] = ml.astrometry.fit_pm_parallax_pix(Coo,jd ,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx,'Ecoo',ecoo_temp,'Weights',w );
-                %CM.pm_x(:,Iobj) = Res(1:2);
-                %CM.pm_x_err(:,Iobj) = Err(1:2);
-                %CM.pm_y(:,Iobj) = Res(3:4);
-                %CM.pm_y_err(:,Iobj) = Err(3:4);
+%                 [~ ,rm_clip_x] = rmoutliers(Hra*Res - Xt,'percentiles',[5,95]);
+%                 [~ ,rm_clip_y] = rmoutliers(Hdec*Res - Yt,'percentiles',[5,95]);
+%                 clip = rm_clip_y | rm_clip_x;
+%                 
+%                 
+%                 Coo = Coo(~clip,:);
+%                 jd = jd(~clip);
+%                 
+%                 ecoo_temp = Ecoo;
+%                 ecoo_temp = Ecoo(:,~clip);
+%                 w= w(~clip);
+%                 [Res,Err,Hra,Hdec] = ml.astrometry.fit_pm_parallax_pix(Coo,jd ,'ra_dec_ref',Args.ra_dec_ref,'FitPlx',Args.FitPlx,'Ecoo',ecoo_temp,'Weights',w );
+%                 %CM.pm_x(:,Iobj) = Res(1:2);
+%                 %CM.pm_x_err(:,Iobj) = Err(1:2);
+%                 %CM.pm_y(:,Iobj) = Res(3:4);
+%                 %CM.pm_y_err(:,Iobj) = Err(3:4);
                 CM.plx_par(Iobj,:) = Res';
                 CM.plx_par_err(Iobj,:) = Err';
                 %CM.Hra_plx = Hra;
@@ -926,8 +982,10 @@ classdef catMatch< handle
             % A = 10mas*1deg^-gamma = 
             if ~isempty(Args.Diagonal)
                 stdsq= Args.Diagonal;
+                stdsq(stdsq==0) = median(stdsq,'omitnan');
             else
                 stdsq = CM.MS.Data.err(Args.ImgInd,:).^2;
+                stdsq(stdsq==0) = median(stdsq);
             end
             x= CM.MS.Data.X(Args.ImgInd,:);
             y= CM.MS.Data.Y(Args.ImgInd,:);
@@ -959,7 +1017,6 @@ classdef catMatch< handle
                Args.WeightByPrcVsMag=true;
                Args.UseGlobalRef=true;
                Args.zp_ogle=true;
-               Args.Chi2DOFWeight = false;
                Args.FitDistortion = false;
                Args.MatchRadius = 1.5;
                Args.fitPatternMaxMag = [];
@@ -967,7 +1024,8 @@ classdef catMatch< handle
                Args.ArgParFitAffineGlobal = {}
             end
             
-            
+            EmptyAstCat =  CM.AstCat.isemptyCatalog;
+            CM.AstCat(EmptyAstCat)= [];
             CM.MS.JD=[CM.AstCat.JD]';
             
             disp(['Finish catMatch construction'])
@@ -987,7 +1045,7 @@ classdef catMatch< handle
             
             %CM.fit_pm;
             %err_pattern= [CM.pm_x_err(1,:)',CM.pm_x_err(2,:)',CM.pm_y_err(1,:)',CM.pm_y_err(2,:)'];
-            CM.fit_affine; CM.apply_affine;
+            CM.fit_affine('WeightBySN',false); CM.apply_affine;
             CM.fit_pm;
             %CM.fit_affine('GlobalRef',true,'OnlyMagRange',true);
             if Args.WeightByPrcVsMag
@@ -1000,7 +1058,7 @@ classdef catMatch< handle
 
                     CM.fit_affine('GlobalRef',true,'OnlyOgle',true,Args.ArgParFitAffineGlobal{:});
                     CM.apply_affine;
-                    CM.fit_pm('WeightByPrcVsMag',Args.WeightByPrcVsMag,'Chi2DOFWeight',Args.Chi2DOFWeight);
+                    CM.fit_pm('WeightByPrcVsMag',Args.WeightByPrcVsMag);
             end
             %CM.apply_affine;
             if Args.FitPlx
@@ -1019,7 +1077,7 @@ classdef catMatch< handle
             if Args.FitDistortion
                 CM.fit_distortion;
                 CM.apply_distortion;
-                CM.fit_pm('WeightByPrcVsMag',Args.WeightByPrcVsMag,'Chi2DOFWeight',Args.Chi2DOFWeight);
+                CM.fit_pm('WeightByPrcVsMag',Args.WeightByPrcVsMag);
             end
         end
             
@@ -1071,7 +1129,7 @@ classdef catMatch< handle
                CM;
                jd;
                Args.flag_pm_err=false;
-               Args.IncludeChi2 = true;
+               Args.IncludeChi2 = false;
                %Args.Cols2Return = {'X','Y','MAG_PSF','FLUX_PSF'};
                Args.CalcMeanPhot=false;
             end
@@ -1369,14 +1427,22 @@ classdef catMatch< handle
         end
         
         
-        function H= pm_design_mat(CM)
+        function H= pm_design_mat(CM,Args)
+            arguments
+               CM;
+               Args.JD = [];
+                
+                
+                
+            end
             
             
             
-            
-            
-            
-            H = [ones(size(CM.MS.JD)),CM.MS.JD-CM.RefJD];
+            if isempty(Args.JD)
+                H = [ones(size(CM.MS.JD)),CM.MS.JD-CM.RefJD];
+            else
+                H = [ones(size(Args.JD)),Args.JD-CM.RefJD];
+            end
         end
         
         
@@ -1514,85 +1580,85 @@ classdef catMatch< handle
             
         end
         
-        function fit_pattern_match(CM,Args)
-            
-            % Fit pattren of the AstroCatalog array with respect to the
-            % reference image, This procedure is rough with steps of 0.1
-            % pixels.
-            
-            arguments
-                CM;
-                %IndCat (1,1) numeric;
-                Args.SearchRadius=3;
-                Args.HistRotEdges= (-90:0.2:90);
-                Args.RangeX = [-100.5,100.5];
-                Args.RangeY = [-100.25,100.25];
-                Args.StepX = 0.5;
-                Args.StepY = 0.5;
-                Args.MatchRaiud = 1;
-                
-                Args.SearchRadius_sec=1;
-                Args.HistRotEdges_sec= (-1:0.002:1);
-                Args.RangeX_sec = [-1.5,1.5];
-                Args.RangeY_sec = [-1.25,1.25];
-                Args.StepX_sec = 0.01;
-                Args.StepY_sec = 0.01;
-                
-            end
-            
-            
-            for IndCat=1:numel(CM.AstCat)
-                try
-                    [II] = imProc.trans.fitPattern(CM.RefCat,CM.AstCat(IndCat),'StepX',Args.StepX ,'StepY',Args.StepY ,...
-                        'RangeX',Args.RangeX ,'RangeY',Args.RangeY ,'SearchRadius',Args.SearchRadius,'HistRotEdges',Args.HistRotEdges,...
-                        'MaxMethod','max1');
-                    [NewX,NewY]=imUtil.cat.affine2d_transformation(CM.AstCat(IndCat).Catalog,II.Sol.AffineTran{1},'+'...
-                        ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
-                    CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('X'))=NewX;
-                    CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('Y'))=NewY;
-                    
-                    Matched = imProc.match.matchedReturnCat(CM.RefCat,CM.AstCat(IndCat),'CooType','pix','Radius'...
-                        ,Args.MatchRaiud);
-                    XY1 = Matched.getCol({'X','Y'});
-                    XY2 = CM.RefCat.getCol({'X','Y'});
-                    
-                    chi2dof = Matched(1).getCol('PSF_CHI2DOF');
-                    %flag_pdf_fit = chi2dof>10;
-                    
-                    D= sqrt((XY1(:,1) - XY2(:,1)').^2 + (XY1(:,2) - XY2(:,2)').^2);
-                    isoutx = isoutlier(XY1(:,1)- XY2(:,1));%,'percentile',[10,90]);
-                    isouty = isoutlier(XY1(:,2)- XY2(:,2));%,'percentile',[10,90]);
-                    
-                    
-                    %flag_dist = ones(size(sum(D<15,2)==1));
-                    %flag_dist = sum(D<3,2)==1;
-                    
-                    % First selection
-                    
-                    Matched.Catalog(~flag_dist | isoutx | isouty ,:) = ...
-                        nan(size(Matched.Catalog(~flag_dist | isoutx | isouty ,:)));
-                    
-                    [II] = imProc.trans.fitPattern(CM.RefCat,Matched,'StepX',Args.StepX_sec ,'StepY',Args.StepY_sec ,...
-                        'RangeX',Args.RangeX_sec ,'RangeY',Args.RangeY_sec,'SearchRadius',Args.SearchRadius_sec,'HistRotEdges',Args.HistRotEdges_sec,...
-                        'MaxMethod','max1');
-                    [NewX,NewY]=imUtil.cat.affine2d_transformation(Matched.Catalog,II.Sol.AffineTran{1},'+'...
-                        ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
-                    Matched.Catalog(:,Matched.colname2ind('X'))=NewX;
-                    Matched.Catalog(:,Matched.colname2ind('Y'))=NewY;
-                    CM.AstCat(IndCat) = Matched;
-                    
-                    
-                    
-                    
-                    CM.PatternMat{IndCat} =II.Sol.AffineTran;
-                catch
-                    CM.Pattern_failed= [CM.Pattern_failed,IndCat];
-                    CM.PatternMat{IndCat}= {};
-                end
-            end
-            
-            
-        end
+%         function fit_pattern_match(CM,Args)
+%             
+%             % Fit pattren of the AstroCatalog array with respect to the
+%             % reference image, This procedure is rough with steps of 0.1
+%             % pixels.
+%             
+%             arguments
+%                 CM;
+%                 %IndCat (1,1) numeric;
+%                 Args.SearchRadius=1.5;
+%                 Args.HistRotEdges= (-90:0.2:90);
+%                 Args.RangeX = [-100.25,100.25];
+%                 Args.RangeY = [-100.25,100.25];
+%                 Args.StepX = 0.5;
+%                 Args.StepY = 0.5;
+%                 
+%                 
+%                 Args.SearchRadius_sec=1;
+%                 Args.HistRotEdges_sec= (-1:0.002:1);
+%                 Args.RangeX_sec = [-1.5,1.5];
+%                 Args.RangeY_sec = [-1.25,1.25];
+%                 Args.StepX_sec = 0.01;
+%                 Args.StepY_sec = 0.01;
+%                 
+%             end
+%             
+%             
+%             for IndCat=1:numel(CM.AstCat)
+%                 try
+%                     [II] = imProc.trans.fitPattern(CM.RefCat,CM.AstCat(IndCat),'StepX',Args.StepX ,'StepY',Args.StepY ,...
+%                         'RangeX',Args.RangeX ,'RangeY',Args.RangeY ,'SearchRadius',Args.SearchRadius,'HistRotEdges',Args.HistRotEdges,...
+%                         'MaxMethod','max1');
+%                     [NewX,NewY]=imUtil.cat.affine2d_transformation(CM.AstCat(IndCat).Catalog,II.Sol.AffineTran{1},'+'...
+%                         ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
+%                     CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('X'))=NewX;
+%                     CM.AstCat(IndCat).Catalog(:,CM.AstCat(IndCat).colname2ind('Y'))=NewY;
+%                     
+%                     Matched = imProc.match.matchedReturnCat(CM.RefCat,CM.AstCat(IndCat),'CooType','pix','Radius'...
+%                         ,Args.MatchRaiud);
+%                     XY1 = Matched.getCol({'X','Y'});
+%                     XY2 = CM.RefCat.getCol({'X','Y'});
+%                     
+%                     chi2dof = Matched(1).getCol('PSF_CHI2DOF');
+%                     %flag_pdf_fit = chi2dof>10;
+%                     
+%                     D= sqrt((XY1(:,1) - XY2(:,1)').^2 + (XY1(:,2) - XY2(:,2)').^2);
+%                     isoutx = isoutlier(XY1(:,1)- XY2(:,1));%,'percentile',[10,90]);
+%                     isouty = isoutlier(XY1(:,2)- XY2(:,2));%,'percentile',[10,90]);
+%                     
+%                     
+%                     %flag_dist = ones(size(sum(D<15,2)==1));
+%                     %flag_dist = sum(D<3,2)==1;
+%                     
+%                     % First selection
+%                     
+%                     Matched.Catalog(~flag_dist | isoutx | isouty ,:) = ...
+%                         nan(size(Matched.Catalog(~flag_dist | isoutx | isouty ,:)));
+%                     
+%                     [II] = imProc.trans.fitPattern(CM.RefCat,Matched,'StepX',Args.StepX_sec ,'StepY',Args.StepY_sec ,...
+%                         'RangeX',Args.RangeX_sec ,'RangeY',Args.RangeY_sec,'SearchRadius',Args.SearchRadius_sec,'HistRotEdges',Args.HistRotEdges_sec,...
+%                         'MaxMethod','max1');
+%                     [NewX,NewY]=imUtil.cat.affine2d_transformation(Matched.Catalog,II.Sol.AffineTran{1},'+'...
+%                         ,'ColX',CM.AstCat(IndCat).colname2ind('X'),'ColY',CM.AstCat(IndCat).colname2ind('Y'));
+%                     Matched.Catalog(:,Matched.colname2ind('X'))=NewX;
+%                     Matched.Catalog(:,Matched.colname2ind('Y'))=NewY;
+%                     CM.AstCat(IndCat) = Matched;
+%                     
+%                     
+%                     
+%                     
+%                     CM.PatternMat{IndCat} =II.Sol.AffineTran;
+%                 catch
+%                     CM.Pattern_failed= [CM.Pattern_failed,IndCat];
+%                     CM.PatternMat{IndCat}= {};
+%                 end
+%             end
+%             
+%             
+%         end
         
         
         
@@ -1666,7 +1732,7 @@ classdef catMatch< handle
                 Args.OnlyOgle = false;
                 Args.Nbins = 20;
                 Args.RmvOutliers = false;
-                Args.closeall = true;
+                Args.CloseAll = true;
                 Args.NewFigure = true;
                 Args.sigma_clip = 2;
                 Args.BinSize=0.7;
@@ -1674,7 +1740,7 @@ classdef catMatch< handle
             end
             
             
-            if (Args.closeall )
+            if (Args.CloseAll )
                 close all;
             end
             
@@ -1738,38 +1804,7 @@ classdef catMatch< handle
             
         end
         
-        
-        function clip_by_prc_vs_mag(CM,Args)
-            
-            arguments
-                CM;
-                Args.prctile_th=50;
-                Args.fun_prctl = [];%
-                Args.sigma_clip=2;
-            end
-            
-            if isempty(Args.fun_prctl)
-                Args.fun_prctl = @(x) prctile(x,Args.prctile_th);
-            end
-            H = CM.pm_design_mat;
-            mean_mag = mean(CM.MS.Data.MAG_PSF,'omitnan')';
-            B = timeSeries.bin.binningFast([mean_mag, tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000], 0.4,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
-            interp_w = interp1(B(:,1),B(:,2),mean_mag ,'linear');
-            interp_std = interp1(B(:,1),B(:,3),mean_mag ,'nearest');
-            flag_out= tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000< interp_w + Args.sigma_clip*interp_std;
-            CM.MS.Data = flag_struct_field(CM.MS.Data,flag_out,'FlagByCol',true);
-            CM.pm_x = CM.pm_x(:,flag_out);
-            CM.pm_y = CM.pm_y(:,flag_out);
-            CM.pm_x_err = CM.pm_x_err(:,flag_out);
-            CM.pm_y_err = CM.pm_y_err(:,flag_out);
-            CM.plx_par = CM.plx_par(flag_out,:);
-            CM.plx_par_err = CM.plx_par_err(flag_out,:);
-            %CM.matched_flag_ref_cat = CM.matched_flag_ref_cat(flag_out);
-            %CM.matched_flag_ogle_cat = CM.matched_flag_ogle_cat(flag_out);
-            
-        end
-            
-            
+                    
         function [meanmag,stdprc] = plot_rms_prc(CM,Args)
             arguments
                 
@@ -1779,7 +1814,7 @@ classdef catMatch< handle
                 Args.prctile_th=50;
                 Args.fun_prctl = [];%
                 Args.OnlyOgle = false;
-                Args.closeall = true;
+                Args.CloseAll = true;
                 Args.Coo = [];
                 %Args.Y = [];
                 Args.pmx = [];
@@ -1792,7 +1827,7 @@ classdef catMatch< handle
             end
             
             
-            if (Args.closeall )
+            if (Args.CloseAll )
                 close all;
             end
             
@@ -1861,13 +1896,109 @@ classdef catMatch< handle
 
 
             if nargout<1
-                clear
+                clear meanmag 
+                clear stdprc
                 return;
             end
             
 
 
         end
+        
+        
+        
+        function [meanmag,stdmag] = plot_rms_mag(CM,Args)
+            arguments
+                
+                CM;
+                Args.magzp = 0;
+                Args.Nbin= 20;
+                Args.prctile_th=50;
+                Args.fun_prctl = [];%
+                Args.OnlyOgle = false;
+                Args.CloseAll = true;
+                Args.Coo = [];
+                %Args.Y = [];
+                Args.pmx = [];
+                Args.mag= [];
+                Args.Nbins = 20;
+                Args.NewFigure = true;
+                Args.RmvOutliers = false;
+                Args.sigma_clip = 2;
+                Args.BinSize=0.7;
+            end
+            
+            
+            if (Args.CloseAll )
+                close all;
+            end
+            
+            if Args.NewFigure
+                figure;
+            end
+            
+            if isempty(Args.fun_prctl)
+                Args.fun_prctl = @(x) prctile(x,Args.prctile_th);
+            end
+            %magzp = Args.magzp;
+            magzp = 0;
+            
+            
+            if Args.OnlyOgle
+                
+                mag =  CM.OgleCat.getCol('I');
+                mag = mag(CM.matched_flag_ogle_cat)';
+                mag =repmat(mag, numel(mag(:,1)),1) ;
+                magzp=0;
+            end
+            
+            
+           
+            %is_out_x = isoutlier(x-H*pmx,'percentile',[10,90]);
+            mag = CM.MS.Data.MAG_PSF;
+            is_out_mag = isoutlier(mag,'percentile',[0,100]);
+            mag(is_out_mag) = nan;
+            %x(is_out_x)=nan;
+            %jd = CM.MS.JD(~isout);
+            %mag(is_out_x)=nan;
+            %H = CM.pm_design_mat;
+            
+            
+            B = timeSeries.bin.binningFast([mean(mag,'omitnan')', tools.math.stat.rstd(mag)'], Args.BinSize,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+            %B = timeSeries.bin.binningFast([nanmean(mag)'+magzp, tools.math.stat.rstd(x-H*pmx)'*0.4*1000], Args.BinSize,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+            
+            if Args.RmvOutliers
+                interp_w = interp1(B(:,1),B(:,2),nanmean(mag)','linear');
+                interp_std = interp1(B(:,1),B(:,3),nanmean(mag)','nearest');
+                flag_out= tools.math.stat.rstd(mag)'< interp_w + Args.sigma_clip*interp_std;
+                mag = mag(:,flag_out);
+            end
+            B = timeSeries.bin.binningFast([mean(mag,'omitnan')', tools.math.stat.rstd(mag)'], Args.BinSize,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+            meanmag =nanmean(mag)+magzp; 
+            stdprc = tools.math.stat.rstd(mag );
+            semilogy(meanmag ,stdprc,'.'...
+                ,'DisplayName','PM','MarkerSize',10,'HandleVisibility','off','Color',[0.5,0.5,0.9])
+            hold on;
+            
+            xmid=B(:,1);
+            ymid=B(:,2);
+            semilogy(xmid, ymid,'DisplayName',[num2str(Args.prctile_th) '%'],'Color',[0.7,0.2,0.1],'LineWidth',2)
+            xlabel('I [mag]','Interpreter','latex')
+            ylabel('$\Delta$I (rstd)','Interpreter','latex')
+            
+            box on
+
+
+            if nargout<1
+                clear meanmag 
+                clear stdprc
+                return;
+            end
+            
+
+
+        end
+
         
         function plot_cmd_ogle(CM,Args)
             arguments
@@ -1955,8 +2086,9 @@ classdef catMatch< handle
                 pmx= pmx(flag);
                 mag=mag(flag);
                 plx=plx(flag);
+                
             end
-            scatter(pmx,pmy,10,plx,'filled');
+            scatter(pmx,pmy,15,plx,'filled');
             
             colorbar;
             
@@ -1971,11 +2103,13 @@ classdef catMatch< handle
                 Args.SourceInd= [];
                 Args.ShowTitle =true;
                 Args.PlotXY = true;
-                Args.closeall=true;
+                Args.CloseAll=true;
                 Args.Color = [0.5,0.2,0.8];
-                
+                Args.plotXYhist = false;
+                Args.TimeBinSize =10;
+                Args.plotBinnedHist = false;
             end
-            if (Args.closeall)
+            if (Args.CloseAll)
                 close all;
             end
             figure;
@@ -1986,39 +2120,185 @@ classdef catMatch< handle
             end
             H = pm_design_mat(CM);
             ax1=subplot(3,1,1);
-            plot(CM.MS.JD,CM.MS.Data.MAG_PSF(:,Sind),'.','Color',Args.Color);
-            ylabel('I [mag]')
+            plot(CM.MS.JD-2450000,CM.MS.Data.MAG_PSF(:,Sind),'.','Color',Args.Color);
+            ylabel('I [mag]','interpreter','latex')
             set(gca,'YDir','reverse')
             ax2= subplot(3,1,2);
-            plot(CM.MS.JD,CM.MS.Data.X(:,Sind),'.','Color',Args.Color);
+            plot(CM.MS.JD-2450000,CM.MS.Data.X(:,Sind),'.','Color',Args.Color);
             hold on;
-            plot(CM.MS.JD,H*CM.pm_x(:,Sind));
+            plot(CM.MS.JD-2450000,H*CM.pm_x(:,Sind));
             ylabel('X [pix]','interpreter','latex')
             hold off;
             ax3= subplot(3,1,3);
-            plot(CM.MS.JD,CM.MS.Data.Y(:,Sind),'.','Color',Args.Color);
+            plot(CM.MS.JD-2450000,CM.MS.Data.Y(:,Sind),'.','Color',Args.Color);
             hold on;
-            plot(CM.MS.JD,H*CM.pm_y(:,Sind));
-            ylabel('Y [pix]')
-            xlabel('jd');
+            plot(CM.MS.JD-2450000,H*CM.pm_y(:,Sind));
+            ylabel('Y [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
             
             linkaxes([ax1,ax2,ax3],'x');
+            
+            
+            if Args.plotXYhist
+                figure;
+                dx = H*CM.pm_x(:,Sind)-CM.MS.Data.X(:,Sind);
+                out=isoutlier(dx);
+                histogram(dx(~out).*CM.pix2mas)
+                xlabel('$\Delta$ X [mas]','interpreter','latex');
+                figure;
+                dy = H*CM.pm_y(:,Sind)-CM.MS.Data.Y(:,Sind);
+                out=isoutlier(dy);
+                histogram(dy(~out).*CM.pix2mas);
+                xlabel('$\Delta$ Y [mas]','interpreter','latex');
+            end
+            
+            figure;
+            subplot(2,1,1);
+            dx = (H*CM.pm_x(:,Sind)-CM.MS.Data.X(:,Sind)).*CM.pix2mas;
+            out=isoutlier(dx);
+            B = timeSeries.bin.binningFast([CM.MS.JD(~out)-2450000, CM.MS.Data.X(~out,Sind)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+            flag = ~(B(:,2)==0 | isnan(B(:,2)));
+            errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+            hold on;
+            plot(CM.MS.JD-2450000,H*CM.pm_x(:,Sind));
+            ylabel('X [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
+            subplot(2,1,2);
+            
+            dy = (H*CM.pm_y(:,Sind)-CM.MS.Data.Y(:,Sind)).*CM.pix2mas;
+            out=isoutlier(dy);
+            B = timeSeries.bin.binningFast([CM.MS.JD(~out)-2450000, CM.MS.Data.Y(~out,Sind)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+            flag = ~(B(:,2)==0 | isnan(B(:,2)));
+            errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+            hold on;
+            plot(CM.MS.JD-2450000,H*CM.pm_y(:,Sind));
+            ylabel('Y [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
+            
+            if Args.plotBinnedHist 
+                figure;
+                subplot(2,1,1);
+                Bx = timeSeries.bin.binningFast([CM.MS.JD(~out)-2450000, dx(~out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                By = timeSeries.bin.binningFast([CM.MS.JD(~out)-2450000, dy(~out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                flag = ~(Bx(:,2)==0 | isnan(Bx(:,2)));
+                histogram(Bx(flag,2),100);
+                xlabel('$\Delta$ X bin[mas]','interpreter','latex')
+                legend(['$\sigma=$' num2str(tools.math.stat.rstd(Bx(flag,2)))],'interpreter','latex')
+                
+                subplot(2,1,2);
+                flag = ~(By(:,2)==0 | isnan(By(:,2)));
+                histogram(By(flag,2),100);
+                xlabel('$\Delta$ Y bin[mas]','interpreter','latex')
+                legend(['$\sigma=$' num2str(tools.math.stat.rstd(By(flag,2)))],'interpreter','latex')
+                
+                
+            end
+                
+           
         end
         
+        function plot_plx_pos_curve(CM,Args)
+            
+            arguments
+                CM;
+                Args.SourceInd= [];
+                Args.ShowTitle =true;
+                Args.PlotXY = true;
+                Args.CloseAll=true;
+                Args.Color = [0.5,0.2,0.8];
+                Args.plotXYhist = false;
+                Args.TimeBinSize =10;
+                Args.plotBinnedHist = false;
+ 
+                
+                
+                
+            end
+            
+            
+            if (Args.CloseAll)
+                close all;
+            end
+            figure;
+            if isempty(Args.SourceInd)
+                Sind = CM.find_event_ind('event_xy',CM.pixelshift);
+            else
+                Sind =Args.SourceInd;
+            end
+            
+            x = CM.MS.Data.X(:,Sind);
+            y = CM.MS.Data.Y(:,Sind);
+            mag = CM.MS.Data.MAG_PSF(:,Sind);
+            jd =  CM.MS.JD;
+            flag = ~isnan(x) & ~isnan(y) & ~isnan(mag);
+            x=x(flag); y=y(flag); mag=mag(flag); jd =jd(flag);
+            [Ecoo,~] = celestial.SolarSys.calc_vsop87(jd, 'Earth', 'e', 'E');
+            ra = CM.OgleCat.getCol('RA')/180*pi;
+            dec = CM.OgleCat.getCol('Dec')/180*pi;
+            
+            [Res,~,Hra,Hdec,jd] = ml.astrometry.fit_pm_parallax_pix([x,y],jd ,'ra_dec_ref',[ra,dec],'FitPlx',true,'Ecoo',Ecoo);
+            
+            ax1=subplot(3,1,1);
+            plot(jd-2450000,mag,'.','Color',Args.Color);
+            ylabel('I [mag]','interpreter','latex')
+            set(gca,'YDir','reverse')
+            ax2= subplot(3,1,2);
+            plot(jd-2450000,x,'.','Color',Args.Color);
+            hold on;
+            plot(jd-2450000,Hra*CM.plx_par(Sind,:)');
+            ylabel('X [pix]','interpreter','latex')
+            hold off;
+            ax3= subplot(3,1,3);
+            plot(jd-2450000,y,'.','Color',Args.Color);
+            hold on;
+            plot(jd-2450000,Hdec*CM.plx_par(Sind,:)');
+            ylabel('Y [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
+            
+            linkaxes([ax1,ax2,ax3],'x');
+            
+            
+            figure; 
+            subplot(2,1,1);
+            dx = (Hra*CM.plx_par(Sind,:)'-x).*CM.pix2mas;
+            out=isoutlier(dx);
+            B = timeSeries.bin.binningFast([jd(~out)-2450000, x(~out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+            flag = ~(B(:,2)==0 | isnan(B(:,2)));
+            errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+            hold on;
+            plot(jd-2450000,Hra*CM.plx_par(Sind,:)');
+            ylabel('X [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
+            subplot(2,1,2);
+            
+            dy = (Hdec*CM.plx_par(Sind,:)'-y).*CM.pix2mas;
+            out=isoutlier(dy);
+            B = timeSeries.bin.binningFast([jd(~out)-2450000, y(~out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+            flag = ~(B(:,2)==0 | isnan(B(:,2)));
+            errorbar(B(flag ,1),B(flag ,2),B(flag ,3)./sqrt(B(flag,4)),'.')
+            hold on;
+            plot(jd-2450000,Hdec*CM.plx_par(Sind,:)');
+            ylabel('Y [pix]','interpreter','latex')
+            xlabel('JD','interpreter','latex');
+
+            
+            
+            
+        end
         
         function plot_color_trends(CM,Args)
             arguments
                 CM;
                 Args.ImInd=1;
                 Args.MaxMag=17;
-                Args.closeall=true;
+                Args.CloseAll=true;
                 Args.plot_all=true;
                 Args.flagCat = true;
                 Args.FlagPrcPrecentile= []; 
             end
             %CM.matched_flag_ogle_cat
             %CM.matched_flag_ref_cat
-            if Args.closeall
+            if Args.CloseAll
                 close all;
             end
             if Args.plot_all
@@ -2132,11 +2412,15 @@ classdef catMatch< handle
         function plot_ogle_mag_comparison(CM,Args)
             arguments
                 CM;
-                Args.closeall=true;
+                Args.CloseAll=true;
+                Args.NewFigure = true;
             end
             
-            if Args.closeall
+            if Args.CloseAll
                 close all;
+            end
+            if Args.NewFigure
+                figure;
             end
            mag_ogle= CM.OgleCat.getCol('I');
            mag_ogle = mag_ogle(CM.matched_flag_ogle_cat);
@@ -2145,7 +2429,10 @@ classdef catMatch< handle
            mag_kmt  = mag_kmt(CM.matched_flag_ref_cat);
            plot(mag_kmt,mag_ogle,'.');
            xlabel('I - kmt')
-           xlabel('I - ogle')
+           ylabel('I - ogle')
+           hold on;
+           plot([min(mag_ogle),max(mag_ogle)],[min(mag_ogle),max(mag_ogle)]);
+           
             
         end
         
@@ -2160,14 +2447,15 @@ classdef catMatch< handle
             if (Args.CloseAll)
                 close all;
             end
-            %ogle_coo = CM.OgleCat.getCol({'RA','Dec'});
+            ogle_coo = CM.OgleCat.getCol({'RA','Dec'});
+            radec = median(ogle_coo,'omitnan');
             %ogle_coo = ogle_coo(CM.matched_flag_ogle_cat,:);
-            ra19 = '18:06:09.11' ;  Dec19 = '-26:04:41.20' ;
-            ra=celestial.coo.convertdms(ra19,'SH','d');
-            dec=celestial.coo.convertdms(Dec19,'SD','d');
+            %ra19 = '18:06:09.11' ;  Dec19 = '-26:04:41.20' ;
+            %ra=celestial.coo.convertdms(ra19,'SH','d');
+            %dec=celestial.coo.convertdms(Dec19,'SD','d');
             
             
-            [AstrometricCat] = imProc.cat.getAstrometricCatalog(ra, dec, 'CatName',Args.CatName,...
+            [AstrometricCat] = imProc.cat.getAstrometricCatalog(radec(1), radec(2), 'CatName',Args.CatName,...
                 'Radius',4/60,...
                 'RadiusUnits','deg',...
                 'EpochOut',CM.MS.JD(1),...
@@ -2206,8 +2494,160 @@ classdef catMatch< handle
         end
             
         
+        function clip_by_prc_vs_mag(CM,Args)
+            
+            arguments
+                CM;
+                Args.prctile_th=50;
+                Args.fun_prctl = [];%
+                Args.sigma_clip=2;
+            end
+            
+            if isempty(Args.fun_prctl)
+                Args.fun_prctl = @(x) prctile(x,Args.prctile_th);
+            end
+            H = CM.pm_design_mat;
+            mean_mag = mean(CM.MS.Data.MAG_PSF,'omitnan')';
+            B = timeSeries.bin.binningFast([mean_mag, tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000], 0.4,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+            interp_w = interp1(B(:,1),B(:,2),mean_mag ,'linear');
+            interp_std = interp1(B(:,1),B(:,3),mean_mag ,'nearest');
+            flag_out= tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000< interp_w + Args.sigma_clip*interp_std;
+            CM.MS.Data = flag_struct_field(CM.MS.Data,flag_out,'FlagByCol',true);
+            CM.pm_x = CM.pm_x(:,flag_out);
+            CM.pm_y = CM.pm_y(:,flag_out);
+            CM.pm_x_err = CM.pm_x_err(:,flag_out);
+            CM.pm_y_err = CM.pm_y_err(:,flag_out);
+            CM.plx_par = CM.plx_par(flag_out,:);
+            CM.plx_par_err = CM.plx_par_err(flag_out,:);
+            %CM.matched_flag_ref_cat = CM.matched_flag_ref_cat(flag_out);
+            %CM.matched_flag_ogle_cat = CM.matched_flag_ogle_cat(flag_out);
+            
+        end
+           
         
+        function clip_epochs_by_zp(CM,Args)
+            
+            arguments
+                CM;
+                Args.prctile_th=50;
+                Args.fun_prctl = [];%
+                Args.MadClip=2;
+            end
+            
+            if isempty(Args.fun_prctl)
+                Args.fun_prctl = @(x) prctile(x,Args.prctile_th);
+            end
+            H = CM.pm_design_mat;
+            %mean_mag = mean(CM.MS.Data.MAG_PSF,'omitnan')';
+            medzp = median(CM.zp);
+            MAD = mad(CM.zp);
+            CM.FlagOutZP= CM.zp< medzp + Args.MadClip*MAD & CM.zp > medzp - Args.MadClip*MAD;
+            CM.MS.Data = flag_struct_field(CM.MS.Data,CM.FlagOutZP,'FlagByCol',false);
+            CM.MS.JD = CM.MS.JD(CM.FlagOutZP);
+            %B = timeSeries.bin.binningFast([mean_mag, tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000], 0.4,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+            %interp_w = interp1(B(:,1),B(:,2),mean_mag ,'linear');
+            %interp_std = interp1(B(:,1),B(:,3),mean_mag ,'nearest');
+            %flag_out= tools.math.stat.rstd(CM.MS.Data.X-H*CM.pm_x)'*0.4*1000< interp_w + Args.sigma_clip*interp_std;
+            %CM.MS.Data = flag_struct_field(CM.MS.Data,flag_out,'FlagByCol',true);
+            %CM.plx_par = CM.plx_par(flag_out,:);
+            %CM.plx_par_err = CM.plx_par_err(flag_out,:);
+            %CM.matched_flag_ref_cat = CM.matched_flag_ref_cat(flag_out);
+            %CM.matched_flag_ogle_cat = CM.matched_flag_ogle_cat(flag_out);
+            
+        end
+
         
+        function plot_eta_per_magnitude(CM,Args)
+            arguments
+                
+                CM;
+                Args.Nbin= 20;
+                Args.prctile_th=50;
+                Args.fun_prctl = [];%
+                Args.OnlyOgle = false;
+                Args.CloseAll = true;
+                Args.Coo = [];
+                %Args.Y = [];
+                Args.pmx = [];
+                Args.mag= [];
+                Args.Nbins = 20;
+                Args.NewFigure = true;
+                Args.RmvOutliers = false;
+                Args.sigma_clip = 2;
+                Args.BinSize=20;  %[days]
+            end
+            
+            if Args.CloseAll
+                close all;
+            end
+            
+            H = CM.pm_design_mat;
+            x= CM.MS.Data.X;
+            y= CM.MS.Data.Y;
+            pmx = CM.pm_x;
+            pmy = CM.pm_y;
+            
+            mag = CM.MS.Data.MAG_PSF;
+
+            %flag_ast = CM.MS.Data.err(:,77)*400<40;
+            %flag_ast=ones(size(CM.MS.Data.err(:,1)));
+            is_out_x = isoutlier(x-H*pmx,'percentile',[10,90]);
+            is_out_y = isoutlier(y-H*pmy,'percentile',[10,90]);
+            flag = is_out_x|is_out_y;
+            x(flag)=nan;
+            y(flag)=nan;
+            %jd = CM.MS.JD(~isout);
+            mag(flag)=nan;
+            H = CM.pm_design_mat;
+            
+            stdprcx= nanstd(x-H*pmx )*0.4*1000;
+            stdprcy= nanstd(y-H*pmy)*0.4*1000;
+            for ISrc = 1:CM.MS.Nsrc
+                
+                %B = timeSeries.bin.binningFast([nanmean(mag)', stdprc'], Args.BinSize,[NaN NaN],{'MidBin', Args.fun_prctl, @tools.math.stat.rstd});
+                Bx = timeSeries.bin.binningFast([CM.MS.JD, x(:,ISrc)], Args.BinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                By = timeSeries.bin.binningFast([CM.MS.JD, y(:,ISrc)], Args.BinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+                flag = Bx(:,4)>3 & By(:,4)>3;
+                H = CM.pm_design_mat('JD',Bx(flag,1));
+                Deltax(ISrc) = std(Bx(flag,2) - H*pmx(:,ISrc)); 
+                Deltay(ISrc) = std(By(flag,2) - H*pmy(:,ISrc));
+                Nep(ISrc) =median(Bx(flag,4));
+                
+                
+            end
+            
+            
+            
+            eta_x =  stdprcx./sqrt(Nep)./(Deltax*0.4*1000);
+            eta_y =  stdprcy./sqrt(Nep)./(Deltay*0.4*1000);
+            
+            figure; 
+            plot(stdprcx./sqrt(Nep),Deltax*0.4*1000,'.')
+            xlabel('$\sigma_x/\sqrt{N}$ [mas]','interpreter','latex')
+            ylabel('$\bar{\Delta}_x$ [mas]','interpreter','latex')
+            xlim([0,50]);
+            ylim([0,50]);
+            figure;
+            plot(stdprcy./sqrt(Nep),Deltay*0.4*1000,'.')
+            xlabel('$\sigma_y/\sqrt{N}$ [mas]','interpreter','latex')
+            ylabel('$\bar{\Delta}_y$ [mas]','interpreter','latex')
+            xlim([0,50]);
+            ylim([0,50]);
+            
+            figure; 
+            
+            plot(mean(mag,'omitnan'), eta_x,'.','DisplayName','$\eta_x$')
+            hold on;
+            plot(mean(mag,'omitnan'), eta_y,'.','DisplayName','$\eta_y$')
+            xlabel('I')
+            legend('interpreter','latex');
+            figure; 
+            h= histogram(eta_y,50,'DisplayName','$\eta_y$');
+            hold on;
+            histogram(eta_x,'BinEdges',h.BinEdges,'DisplayName','$\eta_x$')
+            legend('interpreter','latex');
+            
+        end
 
         
     end

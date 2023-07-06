@@ -1,4 +1,4 @@
-function [Cat,Res] = mextractorIterRefcat(Im,RefCat,Args)
+function [Cat] = mextractorIterRefcat(Im,RefCat,Args)
 % This function extract the reference catalog from an image.
 
 
@@ -10,6 +10,7 @@ function [Cat,Res] = mextractorIterRefcat(Im,RefCat,Args)
 arguments
     Im;
     RefCat;
+    Args.MagThreshold = [15,16,17,18,21];
     Args.SNRThresh= [100,50,20,5];
     Args.SNRforPSFConstruct = []
     Args.FindMeasureRemoveBad =true;
@@ -47,7 +48,7 @@ arguments
     Args.NRefMagBin=5;
     Args.PSFSmallStep= 1e-3;
     Args.UseKernelPSFPhotometry = false;
-    
+    Args.ImagClip=16;
 end
     
 
@@ -58,9 +59,11 @@ end
 
 Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRforPSFConstruct,...
     'RemoveBadSources',false,'ReCalcBack',true,'PsfFunPar',Args.findMeasureSourcesPsfFunPar);
+
 [Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]...
     ,'CubeSumRange',[0.8 4],'SmoothWings',Args.constructPSFSmoothWings,...
-    'psf_zeroConvergeArgs',{'Radius',Args.HalfSize}},'HalfSize',Args.HalfSize);
+    'psf_zeroConvergeArgs',{'Radius',Args.HalfSize}},'HalfSize',Args.HalfSize...
+    ,'selectPsfStarsArgs',{'MinimalDistance',10,'RangeSN',[10,500]});
 
 [Im] = imProc.sources.psfFitPhot(Im,'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
     'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise,'SmallStep',Args.PSFSmallStep});
@@ -74,7 +77,7 @@ end
 
 RefCatBright = RefCat.copy();
 ImagClip = RefCatBright.getCol('I');
-flag_mag = ImagClip<median(ImagClip,'omitnan');
+flag_mag = ImagClip<Args.ImagClip;%median(ImagClip,'omitnan');
 RefCatBright.Catalog = RefCatBright.Catalog(flag_mag,:);
 Resultm1 = imProc.match.matchReturnIndices(Im.CatData,RefCatBright,'Radius',Args.MatchRadius );
 matched_flag_ref_cat= Resultm1.Obj1_IndInObj2(~isnan(Resultm1.Obj1_IndInObj2));
@@ -92,7 +95,7 @@ xy_ref = xy_ref(matched_flag_ref_cat,:);
 
     
 [Result_aff] = imProc.trans.fitPattern(xy_im,xy_ref,'Scale',[0.8,1.2]...
-    ,'RangeX',[-15,15],'RangeY',[-15,15],'StepX',0.05,'StepY',0.05,'MaxMethod','max1','SearchRadius',Args.MatchRadiusPattern,'Flip',[1 1]);
+    ,'RangeX',[-30,30],'RangeY',[-30,30],'StepX',0.05,'StepY',0.05,'MaxMethod','max1','SearchRadius',Args.MatchRadiusPattern,'Flip',[1 1]);
 [NewX,NewY]=imUtil.cat.affine2d_transformation([RefCat.getCol('X'),RefCat.getCol('Y')],Result_aff.Sol.AffineTran{1},'+'...
     ,'ColX',1,'ColY',2);
 
@@ -109,89 +112,24 @@ if sum(flag_out_of_bound)<0.5*numel(flag_out_of_bound)
     Cat = AstroCatalog;
     return;
 end
-X = X(flag_out_of_bound);
-Y = Y(flag_out_of_bound);
-
-Imag = Imag(flag_out_of_bound);
-%D = sqrt((X-X').^2 + (Y-Y').^2);
-%B = timeseries.binningFast([RefCat.getCol('I'),min(D)'], 2,[NaN NaN],{'MidBin', @median});
-
-if Args.NRefMagBin ==1
-    Im.CatData=AstroCatalog({[X,Y,Imag,ones(size(X))]},'ColNames',{'RefX','RefY','RefMag','Niter'});
-    [Im,res] = imProc.sources.psfFitPhot(Im,'XY',[X,Y],'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
-        'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
-    Cat= Im.astroImage2AstroCatalog;
-    Res=res;
-    return
+if Im.HeaderData.isKeyExist('EQUINOX')
+    Im.HeaderData.replaceVal({'EQUINOX'},{2000});
 end
+RefCat.Catalog = RefCat.Catalog(flag_out_of_bound,:);
+B = timeSeries.bin.binningFast([RefCat.getCol('I'),RefCat.getCol('I')], 1,[NaN NaN],{'MidBin', @median});
+[Cat,~]=  ml.pipe.psfFitPhotIterForce(Im.copy(),RefCat,'MagColName','I','MagThreshold',Args.MagThreshold,...
+    'ReCalcBack',Args.ReCalcBack,'psfFitPhotArgs',...
+    {'psfPhotCubeArgs',{'MaxStep',Args.PSFfitMaxStep,'MaxIter',Args.PSFfitMaxIter,'SmallStep',Args.PSFfitConvThresh,...
+   'FitRadius',Args.FitRadius,'UseSourceNoise',Args.UseSourceNoise}},...
+    'injectSourcesArgs',{'RecenterPSF',Args.RecenterPSF},'OutType','astrocatalog');
+%Cat=Cat.sortrows('RefY');
+Im.CatData=AstroCatalog;
 
+% [Cat,Res,ImSub]=  ml.pipe.imProc.psfFitPhotIter(Im.copy(),'XY',[X(flag_out_of_bound),Y(flag_out_of_bound)],'PSF',Im.PSF...
+%   ,'MAG',Imag(flag_out_of_bound),'NRefMagBin',Args.NRefMagBin,'FitRadius',Args.FitRadius,...
+%   'HalfSize',Args.HalfSize,'UseSourceNoise',Args.UseSourceNoise,'PSFfitMaxIter',Args.PSFfitMaxIter,'PSFfitConvThresh',Args.PSFfitConvThresh,...
+%   'RecenterPSF',Args.RecenterPSF,'ReCalcBack',Args.ReCalcBack);
 
-[Cat,Res]=  ml.pipe.imProc.psfFitPhotIter(Im.copy(),'XY',[X,Y],'PSF',Kmin,'MAG',Imag,'NRefMagBin',Args.NRefMagBin,'FitRadius',Args.FitRadius,...
-    'HalfSize',Args.HalfSize,'UseSourceNoise',Args.UseSourceNoise,'PSFfitMaxIter',Args.PSFfitMaxIter,'PSFfitConvThresh',Args.PSFfitConvThresh,...
-    'RecenterPSF',Args.RecenterPSF,'ReCalcBack',Args.ReCalcBack);
 
 end
-%{
-
-
-
-
-
-if Args.findMeasureSourceUsePSF
-    psf = repmat(Im.PSFData.Data,1,1,numel(Args.findMeasureSourcesPsfFunPar{1}));
-    Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRforPSFConstruct...
-        ,'RemoveBadSources',false,'ReCalcBack',Args.ReCalcBack,'Psf',psf);
-else
-    Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRforPSFConstruct,...
-        'RemoveBadSources',false,'ReCalcBack',Args.ReCalcBack,'PsfFunPar',Args.findMeasureSourcesPsfFunPar);
-end
-[Im] = imProc.sources.psfFitPhot(Im,'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
-    'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
-
-Cat= AstroCatalog;
-Cat(1)= Im.astroImage2AstroCatalog;
-if numel(Args.SNRThresh)==1
-    return;
-end
-for IndSNR = 2:numel(Args.SNRThresh)
-    SrcCat = Im.CatData.getCol({'X','Y','FLUX_PSF'});
-    SrcCat= SrcCat(all(~isnan(SrcCat),2),:);
-    S = injectSources(Im.sizeImage,SrcCat,Im.PSF,'RecenterPSF',Args.RecenterPSF);
-    %Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRThresh(IndSNR),'RemoveBadSources',false,'ReCalcBack',true);
-    Im = Im- S;
-    Im.CatData=AstroCatalog;
     
-    if Args.findMeasureSourceUsePSF
-        Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRThresh(IndSNR),'RemoveBadSources',false,'ReCalcBack',Args.ReCalcBack,'Psf',psf);
-    else
-        Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRThresh(IndSNR),...
-            'RemoveBadSources',false,'ReCalcBack',true,'PsfFunPar',Args.findMeasureSourcesPsfFunPar);
-    end
-    Im = imProc.sources.psfFitPhot(Im,'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
-        'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
-    Cat(IndSNR)= Im.astroImage2AstroCatalog;
-end
-
-Cat = Cat.merge;
-x = Cat.getCol('X');
-y = Cat.getCol('Y');
-
-D = sqrt((x-x').^2 + (y-y').^2);
-D(logical(eye(size(D))))=nan;
-flag = min(D)>=Args.MinNeighborDist;
-Cat.Catalog= Cat.Catalog(flag,:);
-
-end
-
-    
-end
-
-
-
-
-
-
-
-
-end
-%}

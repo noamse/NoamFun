@@ -6,11 +6,16 @@ arguments
     Args.SaveCat= true;
     Args.SavedCatFileName = 'ogle_cat.mat';
     Args.SettingFileName='master.txt';
+    Args.OgleCat=[];
 end
 Set = readtable([AstCatPath , Args.SettingFileName]);
 Set = table2struct(Set);
+if isempty(Args.OgleCat)
+    load(Args.OgleCatpath)
+else
+    ogle_cat = Args.OgleCat;
+end
 
-load(Args.OgleCatpath)
 ogle_cat.sortrows('X');
 
 flag_mag = ogle_cat.getCol('I')<Set.max_I;

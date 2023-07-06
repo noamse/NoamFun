@@ -7,15 +7,20 @@ arguments
     Args.MagCol = 3; 
     Args.SearchRadius =1;
     Args.MaxMethod = 'max1';
-    Args.Step = 0.25;
-    Args.Range = [-100.5,100.5]
+    Args.Step = 0.1;
+    Args.Range = [-1000.05,1000.05]
     Args.MaxMag = 17;
+    Args.XYCols = [];
 end
 
 
 RefTabPattern = RefTab(RefTab(:,Args.MagCol)<Args.MaxMag,:);
 xyref = RefTabPattern(:,[Args.XCol,Args.YCol]);
-xyim = ImageCat.getXY;
+if isempty(Args.XYCols)
+    xyim = ImageCat.getCol(Args.XYCols);
+else
+    xyim = ImageCat.getXY;
+end
 [II] = imProc.trans.fitPattern(xyim,xyref,'StepX',Args.Step,'StepY',Args.Step,...
                             'RangeX',Args.Range,'RangeY',Args.Range,'SearchRadius',Args.SearchRadius,'HistRotEdges',(-1:0.001:1),...
                             'MaxMethod',Args.MaxMethod );

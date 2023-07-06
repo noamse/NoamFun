@@ -37,6 +37,7 @@ arguments
     Args.OnlyOgleSource = true;  
     Args.ExtractWithRef = true;
     Args.SettingFileName = 'master.txt';
+    Args.MaxRefMagForPattern = 17;
     
 end
 Args.AstCatSavePath = SavePath;
