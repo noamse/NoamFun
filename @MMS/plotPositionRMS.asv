@@ -1,0 +1,20 @@
+function plotPositionRMS(Obj,Args)
+arguments
+   Obj;
+   Args.CloseALL;
+   Args.ClipPrctile = [10,90];
+end
+[XPMRef,YPMRef]= getGlobalRefMat(Obj);
+X = Obj.getMatrix('X');
+Y = Obj.getMatrix('Y');
+
+IsOutX = isoutlier(X-XPMRef,'percentile',Args.ClipPrctile);
+IsOutY = isoutlier(Y-YPMRef,'percentile',Args.ClipPrctile);
+Flag = ~(IsOutX | IsOutY);
+X(Flag)=nan;
+Y(Flag)=nan;
+XPMRef(Fl;a
+RStdPrcX= tools.math.stat.rstd(X-XPMRef)*0.4*1000;
+RStdPrcY= tools.math.stat.rstd(Y-YPMRef)*0.4*1000;
+    
+    

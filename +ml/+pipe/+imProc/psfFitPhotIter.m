@@ -44,27 +44,23 @@ if Args.NRefMagBin<2
     loc= ones(size(MAG));
 end
 Cat=AstroCatalog;
+%Res=[];
 for Ibin = 1:numel(N)
     flag_bin = loc == Ibin;
     if sum(flag_bin)==0
         continue;
     end
-    
-    %Im.CatData.insertCol()
-    
+        
     if Args.ReCalcBack
         Im = imProc.background.background(Im,'ReCalcBack',Args.ReCalcBack);
     end
      
     Im= imProc.sources.findSources(Im,'Psf',Im.PSF,'Threshold',5,'OnlyForced',true,'ForcedList',[XY(flag_bin,1),XY(flag_bin,2)] );
     Im.CatData.Catalog= double(Im.CatData.Catalog);
-    %Im.CatData=AstroCatalog({[XY(flag_bin,1),XY(flag_bin,2),MAG(flag_bin),Ibin.*ones(size(XY(flag_bin,1)))]},'ColNames',{'RefX','RefY','RefMag','Niter'});
     Im.CatData.insertCol(double([XY(flag_bin,1),XY(flag_bin,2),MAG(flag_bin),Ibin.*ones(size(XY(flag_bin,1)))]),...
                                         Inf,...
                                         {'RefX','RefY','RefMag','Niter'},...
                                         {'pix',    'pix',   'mag',''});
-    %[Im,res] = imProc.sources.psfFitPhot(Im,'XY',[XY(flag_bin,1),XY(flag_bin,2)],'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,...
-    %    'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise},'ColSN','SN_1');
     [Im,res] = ml.pipe.psfFitPhot(Im,'XY',[XY(flag_bin,1),XY(flag_bin,2)],'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,'ColSN','SN_1',...
         'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
     SrcCat = Im.CatData.getCol({'X','Y','FLUX_PSF'});

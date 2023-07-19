@@ -1,53 +1,43 @@
-function Iepoch= fitAffine(Obj,RefCoo,Args)
+function AffineMat= fitAffine(Obj,RefCoo,Args)
 % Fit affine transformation for each epochs in MMS object w.r.t. reference.
 %
 arguments
     Obj;
     RefCoo;
     Args.Weights= [];
-    %               Args.GlobalRef=false;
-    %               Args.WeightByPrcVsMag = false;
+    Args.ColNameX= 'X';
+    Args.ColNameY= 'Y';
+    Args.PrctileRange = [10,90];
+    Args.MaxRefMag = [];
     %               Args.OnlyMagRange=false;
-    %               Args.OnlyOgle = false;
-    %               Args.WeightBySN = false;
-    %               Args.PrctileRange = [20,80];
     %               Args.FitMaxOgleMag= [];
-    %               Args.UseOgleCat = false;
-    %               Args.useCovariance = false;
-    %               Args.ArgsParCovariance = {'Gamma',-1.2,'A',0.002};
     %               Args.MaxRefMag = [];
     %               Args.RefMagCol = 'RefMag';
+    
 end
 
-if ~isempty(Args.Weights)
-    Args.Weights = ones(size(RefCoo,2));
+if isempty(Args.Weights)
+    Weights = ones(size(RefCoo,1),1);
+else
+    Weights = Args.Weights;
 end
 
 
 
-%X = CM.MS.Data.X';
-%Y = CM.MS.Data.Y';
-
-%RefX = X(:,1);
-%RefY = Y(:,1);
 RefX = RefCoo(:,1);
 RefY = RefCoo(:,2);
-X = get
-%             if Args.WeightByPrcVsMag
-%                 MagStdsq = (std(CM.MS.Data.err,'omitnan').^2)';
-%             end
+
+if ~isempty(Args.MaxRefMag)
+    Mag = 
+    
+end
+X = Obj.getMatrix(Args.ColNameX)';
+Y = Obj.getMatrix(Args.ColNameY)';
+AffineMat = cell(Obj.Nepoch,1);
 for Iepoch =1:Obj.Nepoch
     
-    %                 if Args.GlobalRef
-    %
-    %                     RefCat_ast = CM.create_reference(CM.MS.JD(i));
-    %                     RefX=RefCat_ast.getCol('X');
-    %                     RefY=RefCat_ast.getCol('Y');
-    %                 end
-    
-    %H = [X(i,:)',Y(i,:)',ones(size(RefX'))];
     H = Obj.designMatrixEpoch(Iepoch,{'X','Y',[]}, {1,1,[]});
-    
+    %{
     %MAG_PSF=CM.MS.Data.MAG_PSF(i,:)';
     
     
@@ -87,23 +77,22 @@ for Iepoch =1:Obj.Nepoch
     
     %Flag = ~isnan(X(:,i))&~isnan(Y(:,i)) &~isnan(RefX)...
     %    &~isnan(RefY) & ~isnan(w) &w>0 & interp_1ow +interp_std>1./w;
-    if isempty(Args.FitMaxOgleMag)
-        Flag = ~isnan(X(:,i))&~isnan(Y(:,i)) &~isnan(RefX)...
-            &~isnan(RefY) & ~isnan(w(:,1));
-    else
-        Flag = ~isnan(X(:,i))&~isnan(Y(:,i)) &~isnan(RefX)...
-            &~isnan(RefY) & ~isnan(w(:,1)) & Imag<Args.FitMaxOgleMag;
-    end
-    
+    %if isempty(Args.FitMaxOgleMag)
+    %    Flag = ~isnan(X(:,Iepoch))&~isnan(Y(:,Iepoch)) &~isnan(RefX)...
+    %        &~isnan(RefY) & ~isnan(w(:,1));
+    %else
+    %    Flag = ~isnan(X(:,Iepoch))&~isnan(Y(:,Iepoch)) &~isnan(RefX)...
+    %        &~isnan(RefY) & ~isnan(w(:,1)) & Imag<Args.FitMaxOgleMag;
+    %end
+    %}
+    Flag = ~isnan(X(:,Iepoch))&~isnan(Y(:,Iepoch)) &~isnan(RefX)&~isnan(RefY);
     
     Ht = H(Flag,:);
     Xt = RefX(Flag);
     Yt = RefY(Flag);
-    if Args.useCovariance
-        wt = w(Flag,Flag);
-    else
-        wt = w(Flag);
-    end
+    wt = Weights(Flag);
+    
+    
     
     ax = lscov(Ht,Xt,wt);
     ay = lscov(Ht,Yt,wt);
@@ -111,16 +100,12 @@ for Iepoch =1:Obj.Nepoch
     isoutx = isoutlier(Ht*ax-Xt,'percentile',Args.PrctileRange);
     isouty= isoutlier(Ht*ay-Yt,'percentile',Args.PrctileRange);
     
-    isout= isoutx|isouty;
+    FlagO= ~(isoutx|isouty);
     %isout= false(size(isouty));
-    if Args.useCovariance
-        wt = wt(~isout,~isout);
-    else
-        wt = wt(~isout);
-    end
-    ax = lscov(Ht(~isout,:),Xt(~isout),wt);
-    ay = lscov(Ht(~isout,:),Yt(~isout),wt);
-    CM.AffineMat{i} = [ax';ay';0,0,1];
+
+    ax = lscov(Ht(FlagO,:),Xt(FlagO),wt(FlagO));
+    ay = lscov(Ht(FlagO,:),Yt(FlagO),wt(FlagO));
+    AffineMat{Iepoch} = [ax';ay';0,0,1];
     
 end
 % Fit affine transformations

@@ -1,0 +1,16 @@
+function   self  = constructPSF(self,Im,Args)
+arguments
+   self;
+   Im;
+   Args.SNRforPSFConstruct=60;
+   Args.findMeasureSourcesPsfFunPar = {};
+   Args.RemoveBadSources
+end
+Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.SNRforPSFConstruct,...
+    'RemoveBadSources',false,'ReCalcBack',true,'PsfFunPar',Args.findMeasureSourcesPsfFunPar);
+[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]...
+    ,'CubeSumRange',[0.8 4],'SmoothWings',Args.constructPSFSmoothWings,...
+    'psf_zeroConvergeArgs',{'Radius',Args.HalfSize}},'HalfSize',Args.HalfSize...
+    ,'selectPsfStarsArgs',{'RangeSN',[10,500]});
+
+end

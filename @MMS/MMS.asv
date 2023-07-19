@@ -1,34 +1,21 @@
 classdef  MMS < MatchedSources
-  % Class def of MMS - Microlensing MatchedSources. This class is bulit to
-  % suit for the astrometric microlesning experiment.
-  
-  
-  
-  properties
-      AffineTrans = []; %cell array containing matrices of the affine fit. 
-      Tran2D = [] ; %Array of Tran2D object for sophisticated transformation.
-      PMX  = [] ; % x-axis proper motion model for each source
-      PMY  = [] ; % y-axis proper motion model for each source
-      ZP = []; % Fitted ZP. saved for performance. 
-      JD0 = [];
-      
-  end
-    methods
+    % Class def of MMS - Microlensing MatchedSources. This class is bulit to
+    % suit for the astrometric microlesning experiment.
+    
+    
+    
+    properties
+        AffineTrans = []; %cell array containing matrices of the affine fit.
+        Tran2D = [] ; %Array of Tran2D object for sophisticated transformation.
+        PMX  = [] ; % x-axis proper motion model for each source
+        PMY  = [] ; % y-axis proper motion model for each source
+        PMErr = [];
+        ZP = []; % Fitted ZP. saved for performance.
+        JD0 = [];
         
-        
-        function Result = get.JD(Obj)
-            % getter for JD (return 1..Nepoch) if doesnt exist
-            if isempty(Obj.JD)
-                Result = (1:1:Obj.Nepoch).';
-            else
-                Result = Obj.JD;
-            end
-            Obj.JD = Result;
-            
-        end
     end
-
-    methods 
+    
+    methods
         %populateJD(Obj,MatchedMat,Args)
         Tab = medianFieldSource(obj,ColNames,Args);
         AffineMat= fitAffine(Obj,RefCoo,Args);
@@ -37,14 +24,28 @@ classdef  MMS < MatchedSources
         H = designMatrixEpoch(Obj,EpochInd,ColNames, FunCell);
         H = designMatrixPM(Obj,Args);
         Ind = findClosestSource(Obj,Coo);
-        Flag = flagUnmached(Obj,Args); %Maybe implement imedietly? 
+        Flag = flagUnmached(Obj,Args); %Maybe implement imedietly?
         mainRun(Obj,Args)
-        [PMX,PMY] = fitProperMotion(Obj,Args);
+        [PMX,PMY,PMErr] = fitProperMotion(Obj,Args);
         TS = getTimeSeriesField(SourceInd,ColName,Args);
-        
+        [XPMRef,YPMRef]= getGlobalRefMat(Obj);
+        AffineMat= fitAffinePMRef(Obj,XPMRef,YPMRef,Args);
     end
     
     
+    methods % plots
+        [RStdPrcX,RStdPrcY] = plotPositionRMS(Obj,Args)
+        
+    end
     
-   
+    methods
+        
+        
+        function Result = get.JD0(Obj)
+            Result = median(Obj.JD,'omitnan');
+            Obj.JD0= Result;
+            
+        end
+    end
+    
 end

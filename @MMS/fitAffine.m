@@ -8,16 +8,10 @@ arguments
     Args.ColNameX= 'X';
     Args.ColNameY= 'Y';
     Args.PrctileRange = [10,90];
-    %               Args.GlobalRef=false;
-    %               Args.WeightByPrcVsMag = false;
+    Args.MaxRefMag = [];
+    Args.ColNameRefMag = 'RefMag';
     %               Args.OnlyMagRange=false;
-    %               Args.OnlyOgle = false;
-    %               Args.WeightBySN = false;
-    %               Args.PrctileRange = [20,80];
     %               Args.FitMaxOgleMag= [];
-    %               Args.UseOgleCat = false;
-    %               Args.useCovariance = false;
-    %               Args.ArgsParCovariance = {'Gamma',-1.2,'A',0.002};
     %               Args.MaxRefMag = [];
     %               Args.RefMagCol = 'RefMag';
     
@@ -31,30 +25,28 @@ end
 
 
 
-%X = CM.MS.Data.X';
-%Y = CM.MS.Data.Y';
-
-%RefX = X(:,1);
-%RefY = Y(:,1);
 RefX = RefCoo(:,1);
 RefY = RefCoo(:,2);
+
+
 X = Obj.getMatrix(Args.ColNameX)';
 Y = Obj.getMatrix(Args.ColNameY)';
+if ~isempty(Args.MaxRefMag)
+    Mag = Obj.medianFieldSource({Args.ColNameRefMag});
+    FlagMag = Mag<Args.MaxRefMag;
+    RefX = RefX(FlagMag);
+    RefY = RefY(FlagMag);
+    X  = X(FlagMag,:);
+    Y  = Y(FlagMag,:);
+end
+
 AffineMat = cell(Obj.Nepoch,1);
-%             if Args.WeightByPrcVsMag
-%                 MagStdsq = (std(CM.MS.Data.err,'omitnan').^2)';
-%             end
 for Iepoch =1:Obj.Nepoch
     
-    %                 if Args.GlobalRef
-    %
-    %                     RefCat_ast = CM.create_reference(CM.MS.JD(i));
-    %                     RefX=RefCat_ast.getCol('X');
-    %                     RefY=RefCat_ast.getCol('Y');
-    %                 end
-    
-    %H = [X(i,:)',Y(i,:)',ones(size(RefX'))];
     H = Obj.designMatrixEpoch(Iepoch,{'X','Y',[]}, {1,1,[]});
+    if ~isempty(Args.MaxRefMag)
+        H = H(FlagMag,:);
+    end
     %{
     %MAG_PSF=CM.MS.Data.MAG_PSF(i,:)';
     
@@ -118,11 +110,11 @@ for Iepoch =1:Obj.Nepoch
     isoutx = isoutlier(Ht*ax-Xt,'percentile',Args.PrctileRange);
     isouty= isoutlier(Ht*ay-Yt,'percentile',Args.PrctileRange);
     
-    isout= isoutx|isouty;
+    FlagO= ~(isoutx|isouty);
     %isout= false(size(isouty));
 
-    ax = lscov(Ht(~isout,:),Xt(~isout),wt(~isout));
-    ay = lscov(Ht(~isout,:),Yt(~isout),wt(~isout));
+    ax = lscov(Ht(FlagO,:),Xt(FlagO),wt(FlagO));
+    ay = lscov(Ht(FlagO,:),Yt(FlagO),wt(FlagO));
     AffineMat{Iepoch} = [ax';ay';0,0,1];
     
 end

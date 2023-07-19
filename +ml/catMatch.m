@@ -1822,6 +1822,7 @@ classdef catMatch< handle
                 Args.RmvOutliers = false;
                 Args.sigma_clip = 2;
                 Args.BinSize=0.7;
+                Args.ColNameMag = 'RefMag';
             end
             
             
@@ -1845,7 +1846,7 @@ classdef catMatch< handle
             else
                 x= CM.MS.Data.X;
                 pmx = CM.pm_x;
-                mag = CM.MS.Data.MAG_PSF;
+                mag = CM.MS.Data.(Args.ColNameMag);
             end
             
             if Args.OnlyOgle
@@ -1924,6 +1925,7 @@ classdef catMatch< handle
                 Args.RmvOutliers = false;
                 Args.sigma_clip = 2;
                 Args.BinSize=0.7;
+                Args.ColNameMag = 'MAG_PSF';
             end
             
             
@@ -1953,7 +1955,7 @@ classdef catMatch< handle
             
            
             %is_out_x = isoutlier(x-H*pmx,'percentile',[10,90]);
-            mag = CM.MS.Data.MAG_PSF;
+            mag = CM.MS.Data.(Args.ColNameMag);
             is_out_mag = isoutlier(mag,'percentile',[0,100]);
             mag(is_out_mag) = nan;
             %x(is_out_x)=nan;

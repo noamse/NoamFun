@@ -1,0 +1,30 @@
+function applyPattern(Obj,PatternMat)
+
+
+for Icat = 1:numel(Obj.Cats)
+    [NewX,NewY]=imUtil.cat.affine2d_transformation(Obj.Cats(1)PatternMat{Icat},'+'...
+        ,'ColX',CM.AstCat(i).colname2ind('X'),'ColY',CM.AstCat(i).colname2ind('Y'));
+    CM.AstCat(i).Catalog(:,CM.AstCat(i).colname2ind('X')) = NewX;
+    CM.AstCat(i).Catalog(:,CM.AstCat(i).colname2ind('Y')) = NewY;
+    
+    
+    
+end
+
+
+
+for i=1:numel(CM.AstCat)
+                %Xvec = [CM.MS.Data.X(i,:);CM.MS.Data.Y(i,:);ones(size(CM.MS.Data.X(i,:)))];
+                %Xtag = CM.PatternMat{i}{1} * Xvec ;
+                %CM.MS.Data.X(i,:) = Xtag(1,:);
+                %CM.MS.Data.Y(i,:) = Xtag(2,:);
+                %Xcat = CM.AstCat(i).getCol({'X','Y'});
+                %Xvec  = [Xcat';ones(size(Xcat(:,1)'))];
+                [NewX,NewY]=imUtil.cat.affine2d_transformation(CM.AstCat(i).Catalog,CM.PatternMat{i}{1},'+'...
+                    ,'ColX',CM.AstCat(i).colname2ind('X'),'ColY',CM.AstCat(i).colname2ind('Y'));
+                
+                CM.AstCat(i).Catalog(:,CM.AstCat(i).colname2ind('X')) = NewX;
+                CM.AstCat(i).Catalog(:,CM.AstCat(i).colname2ind('Y')) = NewY;
+            end
+
+

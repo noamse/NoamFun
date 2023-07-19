@@ -296,7 +296,7 @@ function [DX,DY,AppFlux,Back,Chi2,Dof]  = LMAPSF(Cube,Std,PSF,FitRadius2,VecXrel
 
 options.Algorithm = 'levenberg-marquardt';
 options.Display= 'off';
-options.FunctionTolerance = 1e-6;
+options.FunctionTolerance = 1e-7;
 
 DX=zeros(size(Cube,3),1);
 DY=zeros(size(Cube,3),1);
@@ -319,9 +319,9 @@ for Isource = 1:size(Cube,3)
     %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3)- Cube(:,:,Isource))./Std(:,:,Isource));
     stdlevel = Std(:,:,Isource);
     %stdlevel(stdlevel==0) = median(stdlevel(:));
-    x0= double([0.01,0.01,WeightedFlux(:,:,Isource),median(stdlevel(:).^2)]);
+    x0= double([-0.01,0.01,WeightedFlux(:,:,Isource),median(stdlevel(:).^2)]);
     %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) +x(:,4) - Cube(:,:,Isource))./stdlevel);
-    fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel);
+    fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
     %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*WeightedFlux(:,:,Isource) - Cube(:,:,Isource))./stdlevel);
     
     x = lsqnonlin(fmin,x0,[],[],options);

@@ -3,9 +3,9 @@ function [PMX,PMY,PMErr] = fitProperMotion(Obj,Args)
 arguments
     Obj;
     Args.ClipMethod = 'movemedian'
-    Args.MoveWindowSize = 50;
+    Args.MoveWindowSize = 100;
     Args.JD0=[];
-    Args.SecondIterationClipPrctile = [5,95];
+    Args.SecondIterationClipPrctile = [10,90];
 end
 
 
