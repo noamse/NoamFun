@@ -18,7 +18,7 @@ classdef ImRed
         methods(Static)
             p = testFun(tol)
             [Cat] = runPipe(ImagePath,CatPathTarget)
-            
+            Set         = setParameterStruct(CatPathTarget);
         end
    
 
@@ -33,7 +33,7 @@ classdef ImRed
         Im          = populatePSFKernel(self,Im); % done
         Cat         = iterativePSFPhot(self,Im); % tbd
         RefCat      = adjustRefCat(self,Im); % tbd
-        Set         = setParameterStruct(self,Args);
+        Set         = readParameterStruct(self,Args);
         FilePath    = generateFileName(self);
         Cat         = populateMetaData(self,Cat,Im);
                       saveOutputCat(self,Cat);

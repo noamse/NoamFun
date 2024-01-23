@@ -5,7 +5,7 @@ arguments
     Im;
     Args.RefColNameMag= 'I';
     Args.MaxRefMagPattern = 17;
-    Args.MatchRadius = 4;
+    Args.MatchRadius = 3;
     Args.AffineScale = [0.8,1.2];
     Args.PatternRange = [-100,100];
     Args.MatchRadiusPattern = 1;

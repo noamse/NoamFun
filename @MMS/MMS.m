@@ -1,4 +1,4 @@
-classdef  MMS < MatchedSources
+classdef  MMS < MatchedSources & matlab.mixin.Copyable
     % Class def of MMS - Microlensing MatchedSources. This class is bulit to
     % suit for the astrometric microlesning experiment.
     
@@ -12,30 +12,51 @@ classdef  MMS < MatchedSources
         PMErr = [];
         ZP = []; % Fitted ZP. saved for performance.
         JD0 = [];
+        PMPlx = [];
+        PMPlxErr = [];
+        
         
     end
     
     methods
         %populateJD(Obj,MatchedMat,Args)
-        Tab = medianFieldSource(obj,ColNames,Args);
-        AffineMat= fitAffine(Obj,RefCoo,Args);
-        applyAffineTran(Obj,AffineMat);
-        ZP = fitRefZP(Obj,RefMagColName,Args)
-        H = designMatrixEpoch(Obj,EpochInd,ColNames, FunCell);
-        H = designMatrixPM(Obj,Args);
-        Ind = findClosestSource(Obj,Coo);
-        Flag = flagUnmached(Obj,Args); %Maybe implement imedietly?
-        mainRun(Obj,MatchedMat,Args)
+        Tab             = medianFieldSource(obj,ColNames,Args);
+        AffineMat       = fitAffine(Obj,RefCoo,Args);
+        ZP              = fitRefZP(Obj,RefMagColName,Args)
+        
+        H               = designMatrixEpoch(Obj,EpochInd,ColNames, FunCell);
+        H               = designMatrixPM(Obj,Args);
+        [H]             = designMatPMPlxColor(Obj,Color,Coo,Args)
+        
+        Ind             = findClosestSource(Obj,Coo);
+        Flag            = flagUnmached(Obj,Args); %Maybe implement imedietly?
+        
+        
+        
         [PMX,PMY,PMErr] = fitProperMotion(Obj,Args);
+        [PMPar,PMErr]   = fitProperMotionPlx(Obj,Args)
+        [FullPar,FullParErr]   = fitPMPlxColor(Obj,Args);
+        AffineMat       = fitAffinePMRef(Obj,XPMRef,YPMRef,Args);
+        applyAffineTran(Obj,AffineMat);
+        
         TS = getTimeSeriesField(SourceInd,ColName,Args);
-        [XPMRef,YPMRef]= getGlobalRefMat(Obj);
-        AffineMat= fitAffinePMRef(Obj,XPMRef,YPMRef,Args);
+        [XPMRef,YPMRef] = getGlobalRefMat(Obj);
+        
+        [Out]           = photometryOutliers(Obj,Args);
+        applySourceFlag(Obj,Flag);
+        [MatchedCat,FlagMatched]    = matchToRefCat(RefCat,Args);
+        
+        
+        mainRun(Obj,MatchedMat,Args)
     end
     
     
     methods % plots
         [RStdPrcX,RStdPrcY] = plotPositionRMS(Obj,Args)
-        
+                              plotSourceCurves(Obj,Ind)
+                              plotEtaTests(Obj)
+        [Mag,MagErr,Out]    = plotMagErr(Obj);
+                              plotCMDPlx(Obj,RefCat)
     end
     
     methods

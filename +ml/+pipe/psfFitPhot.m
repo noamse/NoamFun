@@ -162,7 +162,7 @@ function [ResultObj, Result] = psfFitPhot(Obj, Args)
             
             % subtract Background
             ImageSubBack = Obj(Iobj).Image - Obj(Iobj).Back;
-            
+            %ImageSubBack = Obj(Iobj).Image ;
             % get Cube of stamps around sources
             [Cube, RoundX, RoundY, X, Y] = imUtil.cut.image2cutouts(ImageSubBack, XY(:,1), XY(:,2), Args.HalfSize, 'mexCutout',Args.mexCutout, 'Circle',Args.Circle);
             

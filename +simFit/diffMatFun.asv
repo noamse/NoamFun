@@ -1,0 +1,35 @@
+function Mpar = diffMatFun(SymModel,ParsRow,ParsCol)
+% Function that generate a numeric function for a set of parameters. 
+%   The function return a function that can fill the Nss matrix for a
+%   specific source.
+arguments
+    SymModel = [];
+    ParsRow=  [];
+    ParsCol= [];
+end
+
+if isempty(ParsCol)
+    ParsCol = ParsRow;
+end
+
+Npar = zeros(numel(ParsRow),numel(ParsCol);
+for IparCol = 1:numel(ParsCol)
+    for IparRow = 1:numel(Pars)
+        
+        Npar(IparRow,IparCol) = diff(SymModel,ParsCol(IparCol)) * diff(SymModel,ParsRow(IparRow));
+        
+    end
+end
+
+
+
+
+
+
+       
+
+
+
+
+
+

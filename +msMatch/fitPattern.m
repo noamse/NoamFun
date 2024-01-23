@@ -48,6 +48,7 @@ if ~isempty(Args.MaxRefMag)
 end
 
 for IndCat = 1:numel(Cats)
+    
     [OutputArgs{1:Nargs}] = imUtil.patternMatch.match_scale_rot_shift(RefCat.Catalog, Cats(IndCat).getCol({Args.ColNameX,Args.ColNameY}),...
         'CatColX',1, 'CatColY',2,...
         'RefColX',1, 'RefColY',2,...
@@ -71,6 +72,10 @@ for IndCat = 1:numel(Cats)
         'FilterSigma',Args.FilterSigma);
     
         
+        if ~isfield(OutputArgs{1},'AffineTran') || ~isfield(OutputArgs{1},'AffineTranNoFlip')
+            OutputArgs{1}.AffineTran = {0};
+            OutputArgs{1}.AffineTranNoFlip = {0};
+        end
         
         Result(IndCat)  = OutputArgs{1};
         

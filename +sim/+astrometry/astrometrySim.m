@@ -1,0 +1,68 @@
+function [X,Y,RefCoo,Pars,AffineMat,CooModel,JD] = astrometrySim(Args)
+
+arguments
+    Args.Nsrc = 10;
+    Args.Nepoch = 1000;
+    Args.PMamplitude = 1/400;
+    Args.Noise =1/200;
+    Args.JD =[];
+    Args.JD0 = 0;
+    Args.AffineTranslationRange = [0,0];
+    Args.AffineRotationRange = [0,0];
+    Args.PlxExpMu = 1e-4;
+    Args.CelestialCoo = [4.6273,-0.4646];
+end
+
+if isempty(Args.JD)
+    jdrange = celestial.time.date2jd([2000,1,1;2010,1,1]);
+    JD = linspace(jdrange(1),jdrange(2),Args.Nepoch)';
+    if Args.JD0 ==0
+        Args.JD0 = median(JD);
+    end
+else
+    JD = Args.JD;
+end
+    
+
+
+RefCoo = rand(Args.Nsrc,2)*100;
+RefCoo = [RefCoo ones(size(RefCoo(:,1)))];
+
+ProperMotionX = normrnd(0,Args.PMamplitude,[Args.Nsrc,1]);
+ProperMotionY = normrnd(0,Args.PMamplitude,[Args.Nsrc,1]);
+Plx = exprnd(Args.PlxExpMu,[Args.Nsrc,1]);
+
+if ~all(Plx  ==0)
+    [Ecoo] = celestial.SolarSys.calc_vsop87(JD, 'Earth', 'e', 'E');
+    Xearth = Ecoo(1,:)'; Yearth = Ecoo(2,:)'; Zearth = Ecoo(3,:)';
+else
+    Xearth  = ones(Args.Nepoch,1);
+    Yearth = ones(Args.Nepoch,1);
+    Zearth = ones(Args.Nepoch,1);
+end
+
+X = zeros(Args.Nsrc,Args.Nepoch);
+Y = zeros(Args.Nsrc,Args.Nepoch);
+CooModel = zeros(Args.Nsrc,Args.Nepoch);
+AffineMat = cell(Args.Nepoch,1);
+Pars= [RefCoo(:,1:2)';ProperMotionX';ProperMotionY';Plx';];
+
+for Iepoch = 1:Args.Nepoch
+    RAPlxTerm= -Plx.*(Xearth(Iepoch).*sin(Args.CelestialCoo(1))- Yearth(Iepoch).*cos(Args.CelestialCoo(1))); 
+    DecPlxTerm= -Plx.*(Xearth(Iepoch).*cos(Args.CelestialCoo(1)).*sin(Args.CelestialCoo(1)) + ...
+        Yearth(Iepoch).*sin(Args.CelestialCoo(1)).*sin(Args.CelestialCoo(2)) - Zearth(Iepoch).*cos(Args.CelestialCoo(2))); 
+    CooPM = RefCoo;
+    CooPM(:,1) = CooPM(:,1) + (JD(Iepoch)-Args.JD0)*ProperMotionX +RAPlxTerm;
+    CooPM(:,2) = CooPM(:,2) + (JD(Iepoch)-Args.JD0)*ProperMotionY +DecPlxTerm;
+    %CooPM(:,1) = CooPM(:,1) + (JD(Iepoch)-Args.JD0)*ProperMotionX;
+    %CooPM(:,2) = CooPM(:,2) + (JD(Iepoch)-Args.JD0)*ProperMotionY;
+    CooModel(:,Iepoch) =CooPM(:,1);
+    tform =  randomAffine2d(Rotation=Args.AffineRotationRange,...
+        XTranslation=Args.AffineTranslationRange,YTranslation=Args.AffineTranslationRange);
+    AffineMat{Iepoch} = tform.T';
+    %AffineMat{Iepoch} = eye(3);
+    TAG = ((AffineMat{Iepoch})*CooPM')';
+    %TAG = ((eye(3))*CooPM')';
+    X(:,Iepoch) = TAG(:,1)+normrnd(0,Args.Noise, size(TAG(:,1)));
+    Y(:,Iepoch) = TAG(:,2)+normrnd(0,Args.Noise, size(TAG(:,1)));
+end

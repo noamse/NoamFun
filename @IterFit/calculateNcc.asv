@@ -1,0 +1,43 @@
+function Ncc = calculateNcc(IF,Args)
+
+arguments
+    IF;
+    %Args.Chromatic = false;
+end
+
+
+%Bee = zeros([numel(IF.ParE(:,1)),numel(IF.ParE(:,1)),IF.Nepoch]);
+
+Bcc = zeros([numel(IF.ParC(:,1)),numel(IF.ParC(:,1)),IF.Nepoch]);
+W = calculateWs(IF);
+
+%[Aex,Aey] = IF.generateEpochDesignMat;
+%Aex = IF.AeX;
+%Aey = IF.AeY;
+[Acx,Acy]   = generateChromDedignMat(IF);
+pa = IF.getTimeSeriesField(1,{'pa'});
+    
+for Iep=1:IF.Nepoch
+    AxC=Acx;
+        AyC=Acy;
+        if isnan(pa(Iep))
+            AxC(:,1) = AxC(:,1).*0;
+            AyC(:,2) = AyC(:,2).*0;    
+        else
+            AxC(:,1) = AxC(:,1).*cos(pa(Iep));
+            AyC(:,2) = AyC(:,2).*sin(pa(Iep));
+        end
+        Bcc(:,:,Iep)= Bcc(:,:,Iep) + (AxC'.*W)*AxC + (AyC'.*W)*AyC;
+    end
+else
+    for Iep=1:IF.Nepoch
+        Bee(:,:,Iep)= Bee(:,:,Iep) + (Aex'.*W)*Aex + (Aey'.*W)*Aey;
+    end
+end
+
+
+Nee = sparse(Bee(:,:,1));
+
+for Iblk = 2:numel(Bee(1,1,:)); Nee = blkdiag(Nee,Bee(:,:,Iblk));end
+
+end

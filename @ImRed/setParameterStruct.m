@@ -1,6 +1,7 @@
-function Args= setParameterStruct(self,Args)
+function Args= setParameterStruct(CatPathTarget,Args)
 arguments
-    self;
+    
+    CatPathTarget;
     Args.CCDSEC_xd = 400;
     Args.CCDSEC_xu = 800;
     Args.CCDSEC_yd = 400;
@@ -9,7 +10,7 @@ arguments
     Args.HalfSize= 10;
     Args.SNRforPSFConstruct = 70;
     Args.FitRadius=3;
-    Args.InerRadiusKernel = 5;
+    Args.InerRadiusKernel = 2;
     Args.FindMeasureRemoveBad= true;
     Args.Telescope= 'CTIO';
     Args.findMeasureSourceUsePSF = true;
@@ -24,7 +25,7 @@ arguments
     Args.Dmin_thresh = 3; Args.DistFromBound = 8;
     Args.SettingFileName = 'master.txt';
     Args.MaxRefMagPattern = 17;
-    Args.max_I = 18.3;
+    %Args.max_I = 18.3;
     %Args.mexCutout=true;
     %Args.ExtractWithRef = true;
     %Args.PSFfitConvThresh= 1e-5;
@@ -34,7 +35,7 @@ arguments
     %Args.threshold_im= 5;
     %Args.DirCellPath  = '/home/noamse/astro/KMT_ML/data/results/ob190506/DirCell.mat';
 end
-Args.AstCatSavePath = self.CatPathTarget;
+Args.AstCatSavePath = CatPathTarget;
 mkdir(Args.AstCatSavePath);
 writetable(struct2table(Args), [Args.AstCatSavePath Args.SettingFileName ])
 

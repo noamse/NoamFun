@@ -24,7 +24,7 @@ function populateMetaData(self,Cat,Im,Args)
     Cat.insertCol(pa*ones(size(Cat.getCol(1))),1,'pa');
     Cat.insertCol(secz*ones(size(Cat.getCol(1))),1,'secz');
     %Cat.insertCol(double(Res.ConvergeFlag'),1,'Convg_flag');
-    Cat.JD = Im.HeaderData.getVal(Args.KeyNameJD);
+    Cat.JD = Im.julday;
 
 
 

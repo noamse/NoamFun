@@ -10,11 +10,12 @@ arguments
     Args.Step = 0.1;
     Args.Range = [-1000.05,1000.05]
     Args.MaxMag = 17;
+    Args.MinMag = 14;
     Args.XYCols = [];
 end
 
 
-RefTabPattern = RefTab(RefTab(:,Args.MagCol)<Args.MaxMag,:);
+RefTabPattern = RefTab(RefTab(:,Args.MagCol)<Args.MaxMag & RefTab(:,Args.MagCol)>Args.MinMag,:);
 xyref = RefTabPattern(:,[Args.XCol,Args.YCol]);
 if isempty(Args.XYCols)
     xyim = ImageCat.getCol(Args.XYCols);

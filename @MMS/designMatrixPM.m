@@ -2,6 +2,7 @@ function H = designMatrixPM(Obj,Args)
 
 arguments
     Obj;
+    Args.JD = [];
     Args.JD0=[];
     
     
@@ -13,10 +14,16 @@ else
     JD0=Args.JD0;
 end
 
-if size(Obj.JD,2)==1
-    H= [ones(Obj.Nepoch,1),Obj.JD - JD0];
+if ~isempty(Args.JD)
+    JD=Args.JD;
 else
-    H= [ones(Obj.Nepoch,1),resghape(Obj.JD,Obj.Nepoch,1) - JD0];
+    JD = Obj.JD;
+end
+
+if size(JD ,2)==1
+    H= [ones(numel(JD),1),JD  - JD0];
+else
+    H= [ones(numel(JD),1),resghape(JD ,numel(JD),1) - JD0];
 end
 
 

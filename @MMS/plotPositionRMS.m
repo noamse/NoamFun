@@ -40,6 +40,10 @@ if Args.PlotVsMag
     xlabel('MAG PSF');
     ylabel('$\Delta$ Y rstd [mas]','Interpreter','latex')
     
+    figure;
+    semilogy(MAG,sqrt(RStdPrcX.^2 + RStdPrcY.^2),'.')
+    xlabel('MAG PSF');
+    ylabel('$\Delta$-2D rstd [mas]','Interpreter','latex')
     
     
 end

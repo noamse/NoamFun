@@ -1,0 +1,32 @@
+function [H]  = designMatPMPlxColor(Color,Coo,Args)
+
+arguments 
+    Color; 
+    Coo;
+    Args.JD=[];
+    Args.JD0 = 0;
+    Args.EarthCoo = [];
+    
+end
+
+
+
+if isempty(Args.JD)
+    JD = Obj.JD;
+else
+    JD = Args.JD;
+end
+
+
+
+
+if isempty(Args.EarthCoo)
+    [Ecoo] = celestial.SolarSys.calc_vsop87(JD, 'Earth', 'e', 'E');
+else
+    Ecoo = Args.EarthCoo;
+end
+X = Ecoo(1,:)'; Y = Ecoo(2,:)'; Z = Ecoo(3,:)';
+
+
+JD=JD-Args.JD0;
+
