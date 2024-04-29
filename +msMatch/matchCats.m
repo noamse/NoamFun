@@ -3,7 +3,7 @@ function MatchedMat = matchCats(Cats,Args)
 
 arguments
     Cats;
-    Args.MatchSearchRadius=1;
+    Args.MatchSearchRadius=2;
     Args.RefCatInd=1;
 end
 

@@ -1,11 +1,13 @@
 function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
-    % The core function for PSF-fitting photometry.
+    % The core function for PSF-fitting photometry. The function is a
+    % version of imUtil.sources.psfPhotCube, but using matlab lsqnonlin to
+    % minimize the chi^2. Note this is significantly slower than
+    % imUtil.sources.psfPhotCube.
     %   The input of this function is a cube of stamps of sources, and a
     %   PSF to fit.
     %   The fit is for only, flux and position.
-    %   The function fits all the stamps simultanously.
-    %   The flux fit is fitted linearly, while the positions are fitted
-    %   using a one-directional steepest descent style method.
+    %   The function fits the stamps using built-in lsqnonlin with specified 
+    %   algorithm (default - LM) .
     %   In each iteration the PSF is shifted using fft-sub-pixels-shift.
     % Input  : - A background subtracted cube of stamps around sources.
     %            The third dimesnion is the stamp index.
@@ -39,22 +41,16 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
     %                   Default is [].
     %
     %            Fitting-related parameters:
-    %            'SmallStep' - Gradient step size. Default is 1e-4 (pix).
-    %            'MaxStep' - Maximum step size in each iteration.
-    %                   Default is 0.2.
-    %            'ConvThresh' - Convergence threshold. Default is 1e-4.
-    %            'MaxIter' - Max number of iterations. Default is 10.
     %            'SN' - Vector S/N to use for the conversion. (not useful)
     %                   Default is [].
-    %            'UseSourceNoise' - A string indicating if implement
-    %                   source noise in the fit. The function use the 
-    %                   last estimator of the psf flux by the current best 
-    %                   fit fromthe previous step. 
-    %                   'all' - use from the second iteration and on.
-    %                   'last' - use only in the last (additional) iteration. 
-    %                   'off' - only background noise. 
-    %                   Default is 'last'.
+    %            'LMAPSFArgs' - A cell array of additional
+    %                   arguments to pass to imUtil.sources.backgroundCube
+    %                   Default is {}.
+    %            'UseSourceNoise' - A logical indicating if implement
+    %                   source noise in the fit. 
+    %                   Default is true.
     %            'ZP' - ZP for magnitude calculations. Default is 25.
+    %
     % Output : - A structure with the following fields:
     %            .Chi2 - Vector of \chi^2 (element per stamp).
     %            .Dof - The number of degrees of freedom in the fit.
@@ -98,14 +94,10 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
         Args.Xinit      = [];
         Args.Yinit      = [];
         
-        Args.SmallStep  = 0.1; %3e-3; %3e-3; %1e-3;
-        Args.MaxStep    = 0.15;
-        Args.ConvThresh = 1e-4;
-        Args.MaxIter    = 8;
 
         Args.SN         = [];
-        
-        Args.UseSourceNoise = 'last'; %'off';
+        Args.LMAPSFArgs cell = {'Algorithm','levenberg-marquardt','Display','off','FunctionTolerance',1e-5};
+        Args.UseSourceNoise = true; %'off';
         Args.ZP         = 25; 
     end
     
@@ -138,10 +130,10 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
     
     FitRadius2 = Args.FitRadius.^2;
     
-    [Ny, Nx, Nim] = size(Cube);
+    [Ny, Nx, ~] = size(Cube);
     Xcenter = Nx.*0.5 + 0.5;
     Ycenter = Ny.*0.5 + 0.5;
-    Dof     = Nx.*Ny - 3;
+    
     
     VecXrel = (1:1:Nx) - Xcenter;
     VecYrel = (1:1:Ny) - Ycenter;
@@ -157,14 +149,6 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
         Args.PSF = imUtil.kernel2.gauss(Args.PSF);
     end    
     
-    % adaptive conversion threshold 
-    if isempty(Args.SN)
-        ConvThresh = Args.ConvThresh;
-    else
-        ConvThresh = 0.1./Args.SN;
-    end
-
-    WeightedPSF = sum(Args.PSF.^2, [1 2]); % for flux estimation
     
     X = Args.Xinit;
     Y = Args.Yinit;
@@ -174,33 +158,14 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
     DX = X - Xcenter + StepX;
     DY = Y - Ycenter + StepY;
         
-    AdditionalIter=false;
-    UseSourceNoise=false;
-    switch lower(Args.UseSourceNoise)
-
-        case 'all'
-            UseSourceNoise=true;
-        case 'off'
-            UseSourceNoise=false;
-        case 'last'
-            AdditionalIter = true;
-            UseSourceNoise=false;
-    end
-
-    VecD = [0, Args.SmallStep, 2.*Args.SmallStep];
-    H    = VecD.'.^[0, 1, 2];
-    Ind   = 0;
-    NotConverged = true;
+    
     StdBack = Std;
-    if UseSourceNoise
+    if Args.UseSourceNoise
         Std = sqrt(abs(Cube)+StdBack.^2);
-        %Std = sqrt(abs(Cube) + StdBack);
-        %Std(Std==0) = median(StdBack);
-        %Std = sqrt(abs(Cube));
     end
     
-    [DX,DY,AppFlux,Back,Chi2,Dof]  = LMAPSF(Cube,Std,Args.PSF,FitRadius2,VecXrel, VecYrel,WeightedPSF);
-    ConvergeFlag = true(size(DX));
+    [DX,DY,AppFlux,Back,Chi2,Dof]  = LMAPSF(Cube,Std,Args.PSF,FitRadius2,VecXrel, VecYrel,Args.LMAPSFArgs{:});
+    ConvergeFlag = true(size(DX)); % not in use now, return true;
     ShiftedPSF = imUtil.trans.shift_fft(Args.PSF, DX, DY);
          %[~, Flux, ShiftedPSF]  = internalCalcChi2(Cube, Std, Args.PSF, DX, DY, WeightedPSF, VecXrel, VecYrel, FitRadius2);
     
@@ -212,6 +177,7 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
     end
     
     %Result.Flux = squeeze(Flux);
+    Ind= 0;
     Result.Flux = AppFlux;
     % SNm can be negaive if source is negative
     Result.SNm  = sign(Result.Flux).*abs(Result.Flux)./sqrt(abs(Result.Flux) + (squeeze(StdBack)).^2);  % S/N for measurments
@@ -237,6 +203,87 @@ function [Result, CubePsfSub] = psfPhotCubeLM(Cube, Args)
 end
 
 % Internal functions
+function [DX,DY,AppFlux,Back,Chi2,Dof]  = LMAPSF(Cube,Std,PSF,FitRadius2,VecXrel, VecYrel,Args)
+    %
+    % Internal function in psfPhotCubeLM. This function condict the chi^2
+    % minimization for PSF photometry.
+    %
+    % Input  : - A background subtracted cube of stamps around sources.
+    %            The third dimesnion is the stamp index.
+    %            The code is debugged only for an odd-size PSF and stamps.
+    %          * ...,key,val,...
+    %            'Cube' - Background-subtracted cutouts around the sources.
+    %            'Std' - The stand
+    %            'PSF' - A PSF stamp to fit. If this is a scalar, then will
+    %                   use a Gaussian PSF, which sigma-width is given by
+    %                   the scalar. Default is 1.5.
+    %            'Std' - Either a vector (element per stamp), or a cube
+    %                   (the same size as the input cube) of std in the
+    %                   cube. 
+    %            'FitRadius2' - Radius^2 (squared) around source center to fit.
+    %                   This can be used in order to exclude regions
+    %                   outside the stellar core.
+    %                   Default is 9.
+    %            'VecXrel', 'VecYrel', - 
+    %            'Xinit' - A vector of initial X position for the PSF
+    %                   position in the stamps. If empty, then 
+    %                   use size/2 + 0.5. Default is [].
+    %            'Yinit' - Like 'Xinit' but for the Y position.
+    %                   Default is [].
+
+
+arguments
+    Cube;
+    Std;
+    PSF;
+    FitRadius2;
+    VecXrel; 
+    VecYrel;
+    Args.Algorithm ='levenberg-marquardt';
+    Args.Display ='off';
+    Args.FunctionTolerance = 1e-5;
+end
+
+options.Algorithm = Args.Algorithm;%'interior-point';%'trust-region-reflective';% 
+options.Display= Args.Display; 
+options.FunctionTolerance = Args.FunctionTolerance;
+
+
+DX=zeros(size(Cube,3),1);
+DY=zeros(size(Cube,3),1);
+Back = zeros(size(Cube,3),1);
+Chi2=zeros(size(Cube,3),1);
+AppFlux=zeros(size(Cube,3),1);
+
+MatX     = permute(VecXrel - DX(:),[3 2 1]);
+MatY     = permute(VecYrel - DY(:),[2 3 1]);
+MatR2    = MatX.^2 + MatY.^2;
+Flag     = MatR2<=FitRadius2;
+
+WeightedPSF = sum(Flag.*PSF.^2, [1 2]);
+WeightedFlux = sum(Flag.*Cube.*PSF, [1 2], 'omitnan')./WeightedPSF;
+Dof      = squeeze(sum(Flag,[1 2]) - 2);
+for Isource = 1:size(Cube,3)
+    stdlevel = Std(:,:,Isource);
+    pos0 = [0,0];
+    x0= double([pos0 ,WeightedFlux(:,:,Isource)]);
+    %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
+    fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
+    %
+    x = lsqnonlin(fmin,x0,[],[],options);
+    
+    DX(Isource) = x(1); 
+    DY(Isource) = x(2);
+    AppFlux(Isource) = x(3);
+    Back(Isource) = median(stdlevel(:).^2);
+    Chi2(Isource)= sum(sum(fmin(x)));
+    
+end
+
+end
+    
+%{
+
 function [DX,DY,AppFlux,Back,Chi2,Dof]  = gridFit(Cube,Std,PSF,FitRadius2,VecXrel, VecYrel,WeightedPSF)
 
 DX=zeros(size(Cube,3),1);
@@ -257,53 +304,7 @@ Dof      = squeeze(sum(Flag,[1 2]) - 2);
 
 
 end
-function [DX,DY,AppFlux,Back,Chi2,Dof]  = LMAPSF(Cube,Std,PSF,FitRadius2,VecXrel, VecYrel,WeightedPSF)
 
-
-options.Algorithm = 'levenberg-marquardt';%'interior-point';%'trust-region-reflective';% 
-options.Display= 'off';
-options.FunctionTolerance = 1e-7;
-
-DX=zeros(size(Cube,3),1);
-DY=zeros(size(Cube,3),1);
-Back = zeros(size(Cube,3),1);
-Chi2=zeros(size(Cube,3),1);
-AppFlux=zeros(size(Cube,3),1);
-
-MatX     = permute(VecXrel - DX(:),[3 2 1]);
-MatY     = permute(VecYrel - DY(:),[2 3 1]);
-MatR2    = MatX.^2 + MatY.^2;
-Flag     = MatR2<FitRadius2;
-%WeightedPSF = sum(Flag.*PSF.^2, [1 2]);
-%WeightedFlux = sum(Cube.*PSF.*Flag, [1 2], 'omitnan')./WeightedPSF;
-WeightedPSF = sum(Flag.*PSF.^2, [1 2]);
-WeightedFlux = sum(Flag.*Cube.*PSF, [1 2], 'omitnan')./WeightedPSF;
-Dof      = squeeze(sum(Flag,[1 2]) - 2);
-for Isource = 1:size(Cube,3)
-    %x0= double([0.01,0.01,WeightedFlux(:,:,Isource)]);
-    %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3)- Cube(:,:,Isource))./Std(:,:,Isource));
-    stdlevel = Std(:,:,Isource);
-    %stdlevel(stdlevel==0) = median(stdlevel(:));
-    pos0 = 0.1*[rand-0.5,rand-0.5];
-    x0= double([pos0 ,WeightedFlux(:,:,Isource)]);%,median(stdlevel(:).^2)]);
-    %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) +x(:,4) - Cube(:,:,Isource))./stdlevel);
-    fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
-    %fmin = @(x) double((imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
-    %fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*WeightedFlux(:,:,Isource) - Cube(:,:,Isource))./stdlevel);
-    
-    x = lsqnonlin(fmin,x0,[],[],options);
-    DX(Isource) = x(1); 
-    DY(Isource) = x(2);
-    AppFlux(Isource) = x(3);
-    %Back(Isource) = x(4);
-    Back(Isource) = median(stdlevel(:).^2);
-    Chi2(Isource)= sum(sum(fmin(x)));
-    %Chi2(Isource)= sum(sum((Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2));
-end
-
-end
-    
-%{
 function [StepX,StepY,AppFlux]  = gradDescentPSF(Cube, Std, PSF, DX, DY, WeightedPSF, VecXrel, VecYrel, FitRadius2,H,SmallStep,MaxStep)
 % Return the next gradient Descent step for the PSF's position fitting.
 
@@ -340,6 +341,7 @@ function [StepX,StepY,AppFlux]  = gradDescentPSF(Cube, Std, PSF, DX, DY, Weighte
 
 end
 %}
+%{
 function [Chi2,WeightedFlux, ShiftedPSF, Dof] = internalCalcChi2(Cube, Std, PSF, DX, DY, WeightedPSF, VecXrel, VecYrel, FitRadius2)
     % Return Chi2 for specific PSF and Cube
     % shift PSF
@@ -386,3 +388,4 @@ function [Chi2,WeightedFlux, ShiftedPSF, Dof] = internalCalcChi2(Cube, Std, PSF,
     Chi2  = squeeze(Chi2);
      
 end
+%}

@@ -1,44 +1,53 @@
-classdef  IterFit< MMS
-    
-    
-    
+classdef  SimAstrometry
+%   This class generate an multi epoch astrometic simulated data.
+%   
     
     properties
-       Rx; Ry;
+       X; Y; Epoch;
        ParS; ParE; ParC;
        epsS; epsE; epsC;
-       epsSTrack; epsETrack; epsCTrack;
-       AsX; AsY;
-       AeX; AeY;
-       bs; be; 
-       Nee; Nss; Nse;
-       N;
-       Ws; We; 
-       Wes;
-       PlxTerms;
-       Chromatic = false; Chrom2D= false;
-       Plx = true;
-       UseWeights = true;
-       CelestialCoo =  [4.6273,-0.4646];;
+%       epsSTrack; epsETrack; epsCTrack;
+%       AsX; AsY;
+%       AeX; AeY;
+%       bs; be; 
+%       Nee; Nss; Nse;
+%       N;
+%       Ws; We; 
+%       Wes;
+%       PlxTerms;
+%       Chromatic = false;
+%       Plx = true;
     end
     
     
     methods
-        function IF=IterFit(varargin)
-            IF@MMS();
-            if nargin==1
-                if isa(varargin{1},'MMS')
-                    meta=?MMS;
-                    dependent=[meta.PropertyList.Dependent];
-                    constant = [meta.PropertyList.Constant];
-                    props={meta.PropertyList.Name};
-                    for pname=props(~dependent & ~constant)
-                        eval(['IF.' pname{1} '=varargin{1}.' pname{1} ';']);
-                    end
-                end
-            end
+        function SA=SimAstrometry(varargin)
+            %IF@MMS();
+            %if nargin==1
+            %    if isa(varargin{1},'MMS')
+            %        meta=?MMS;
+            %        dependent=[meta.PropertyList.Dependent];
+            %        constant = [meta.PropertyList.Constant];
+            %        props={meta.PropertyList.Name};
+            %        for pname=props(~dependent & ~constant)
+            %            eval(['IF.' pname{1} '=varargin{1}.' pname{1} ';']);
+            %        end
+            %    end
+            %end
         end
     end
+    
+    
+    
+    
+    methods
+        
+    end
+    
+    
+    
+end
+    %{
     methods
         % getters and setters
         function Asx = get.AsX(IF)
@@ -73,22 +82,20 @@ classdef  IterFit< MMS
         [Aex,Aey]   = generateEpochDesignMat(IF,Args);
         
         [Acx,Acy]   = generateChromDesignMat(IF,Args);
-        [Hc]        = generateChromaticDesignMat(IF,Args)
+        
         [Nss]       = calculateNss(IF);
         [bs]        = calculateBs(IF);
         
         [Nee]       = calculateNee(IF);
         [be]        = calculateBe(IF);
         
-        
-        [ParC]      = initiateParC(IF,Args);
         [Ncc]       = calculateNcc(IF);
         [bc]        = calculateBc(IF);
         
         [Wes]       = calculateWes(IF);
         [Ws]        = calculateWs(IF);
         [Rx,Ry]     = calculateResiduals(IF);
-        [PlxX,PlxY] = calculatePlxTerms(IF,Args);
+        [PlxX,PlxY] = calculatePlxTerms(IF);
        
         [Rx,Ry]     = updateResiduals(IF);
         
@@ -117,3 +124,4 @@ end
     
     
     
+%}

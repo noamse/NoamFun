@@ -1,7 +1,6 @@
-function startupIF(IF,Args)
+function startupIF(IF)
 arguments
     IF;
-    Args.Coo =  [4.6273,-0.4646];
 end
 IF.epsSTrack = {}; IF.epsETrack={};
 
@@ -12,6 +11,6 @@ IF.epsSTrack = {}; IF.epsETrack={};
 IF.epsSTrack{1} = IF.ParS;
 IF.epsETrack{1} = IF.ParE;
 IF.epsCTrack{1} = IF.ParC;
-[PlxX,PlxY] = calculatePlxTerms(IF,'Coo',Args.Coo);
+[PlxX,PlxY] = calculatePlxTerms(IF,'Coo',IF.CelestialCoo);
 IF.PlxTerms = [PlxX,PlxY];
 end

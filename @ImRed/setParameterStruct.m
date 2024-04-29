@@ -15,7 +15,7 @@ arguments
     Args.Telescope= 'CTIO';
     Args.findMeasureSourceUsePSF = true;
     Args.UseKernelPSFPhotometry = true;
-    Args.UseSourceNoise = 'all';
+    Args.UseSourceNoise = true;
     Args.MaxRefMag = 19;
     Args.NRefMagBin=8;
     Args.FitWings=true;

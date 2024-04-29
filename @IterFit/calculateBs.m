@@ -9,7 +9,7 @@ Rx(isnan(Rx))= 0;
 Ry(isnan(Ry))= 0;
 Wes = calculateWes(IF);
 
-Bs = reshape(Ax'*(Rx'.*Wes) + Ay'*(Ry'.*Wes) ,[],1);
+Bs = reshape(Ax'*(Rx.*Wes) + Ay'*(Ry.*Wes) ,[],1);
 
 
 

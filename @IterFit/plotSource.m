@@ -69,13 +69,23 @@ xlabel('JD','interpreter','latex');
 linkaxes([ax1,ax2,ax3],'x');
 
 
+OutMag=isoutlier(TS(:,3),"movmedian",Args.TimeBinSize);
+Ytag = TS(:,2)+AffineY;
+DY = (Ytag - ModelY);
+OutY=isoutlier(DY,1);
+Xtag = TS(:,1)+AffineX;
+DX = (Xtag - ModelX);
 
+OutX=isoutlier(DX,1);
+Out = (OutX) | (OutY) | (OutMag);
 
 figure;
 ax1 = subplot(3,1,1);
 %DX = (H*CM.pm_x(:,Sind)-CM.MS.Data.X(:,Sind)).*CM.pix2mas;
-OutMag=isoutlier(TS(:,3),"movmedian",Args.TimeBinSize);
-BMag = timeSeries.bin.binningFast([IF.JD(~OutMag)-2450000, TS(~OutMag,3)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+
+
+
+BMag = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, TS(~Out,3)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 FlagMag = ~(BMag(:,2)==0 | isnan(BMag(:,2)));
 errorbar(BMag(FlagMag,1),BMag(FlagMag,2),BMag(FlagMag,3)./sqrt(BMag(FlagMag,4)),'.')
 %hold on;
@@ -88,10 +98,7 @@ set(gca,'YDir','reverse')
 ax2 = subplot(3,1,2);
 
 %DX = (H*PMX-TS(:,1));
-Xtag = TS(:,1)+AffineX;
-DX = (Xtag - ModelX);
-OutX=isoutlier(DX);
-Bx = timeSeries.bin.binningFast([IF.JD(~OutX)-2450000, Xtag(~OutX) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Xtag(~Out) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 Bx(Bx(:,3)==0,3) = Inf;
 FlagX = ~(Bx(:,2)==0 | isnan(Bx(:,2)) | Bx(:,4)<2);
 errorbar(Bx(FlagX ,1),Bx(FlagX ,2),Bx(FlagX ,3)./sqrt(Bx(FlagX,4)),'.');
@@ -99,18 +106,21 @@ hold on;
 %plot(IF.JD-2450000,ModelX,'o','Color',[0.7, 0.2, 0.5]);
 scatter1= scatter(IF.JD-2450000,ModelX);%,'Color',[0.7, 0.2, 0.5]);
 alpha(scatter1,.05)
+BmodelX = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, ModelX(~Out) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+BmodelX(BmodelX(:,3)==0,3) = Inf;
+errorbar(BmodelX(FlagX ,1),BmodelX(FlagX ,2),BmodelX(FlagX ,3)./sqrt(BmodelX(FlagX,4)),'.');
 ylabel('X [pix]','interpreter','latex')
 xlabel('JD','interpreter','latex');
 
 
 ax3 = subplot(3,1,3);
-Ytag = TS(:,2)+AffineY;
-DY = (Ytag - ModelY);
-OutY=isoutlier(DY);
+% Ytag = TS(:,2)+AffineY;
+% DY = (Ytag - ModelY);
+% OutY=isoutlier(DY,1);
 
-By = timeSeries.bin.binningFast([IF.JD(~OutY)-2450000, Ytag(~OutY)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ytag(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 By(By(:,3)==0,3) = Inf;
-FlagY = ~(By(:,2)==0 | isnan(By(:,2))| Bx(:,4)<2);
+FlagY = ~(By(:,2)==0 | isnan(By(:,2))| By(:,4)<2);
 errorbar(By(FlagY ,1),By(FlagY ,2),By(FlagY ,3)./sqrt(By(FlagY,4)),'.')
 hold on;
 %plot(IF.JD-2450000,ModelY,'o','Color',[0.7, 0.2, 0.5]);
@@ -124,13 +134,13 @@ linkaxes([ax1,ax2,ax3],'x');
 %Plot residuals
 figure;
 [Rx,Ry] =IF.calculateResiduals;
-Rx = Rx(SourceInd,:)'*400;
-Ry = Ry(SourceInd,:)'*400;
+Rx = Rx(:,SourceInd)*400;
+Ry = Ry(:,SourceInd)*400;
 ax1 = subplot(2,1,1);
-OutX = isoutlier(Rx,2);
-Bx = timeSeries.bin.binningFast([IF.JD(~OutX)-2450000, Rx(~OutX)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+OutX = isoutlier(Rx,1);
+Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Rx(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 Bx(Bx(:,3)==0,3) = Inf; FlagX = ~(Bx(:,2)==0 | isnan(Bx(:,2)) | Bx(:,4)<2);
-scatter(IF.JD-2450000,Rx,5,'o','filled','MarkerFaceAlpha',.07,'MarkerEdgeAlpha',.07); ylabel('Rx')
+scatter(IF.JD-2450000,Rx,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2); ylabel('Rx')
 
 hold on;
 
@@ -139,9 +149,9 @@ ylim([-50,50])
 
 ax2 = subplot(2,1,2);
 OutY = isoutlier(Ry,2);
-By = timeSeries.bin.binningFast([IF.JD(~OutY)-2450000, Ry(~OutY)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ry(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 By(By(:,3)==0,3) = Inf; FlagY = ~(By(:,2)==0 | isnan(By(:,2)) | By(:,4)<2);
-scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.07,'MarkerEdgeAlpha',.07); ylabel('Ry')
+scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2); ylabel('Ry')
 
 hold on;
 ylim([-50,50])

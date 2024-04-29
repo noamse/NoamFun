@@ -15,7 +15,8 @@ end
 [Nss]       = calculateNss(IF);
 [bs]        = calculateBs(IF);
 
-IF.epsS = cgs(Nss,bs);
+%IF.epsS = cgs(Nss,bs,1e-7);
+IF.epsS = bicg(Nss,bs,1e-8);
 
 IF.epsSTrack{end+1} = IF.ParS;
 
@@ -27,19 +28,18 @@ updateParS(IF);
 [be]        = calculateBe(IF);
 
 
-IF.epsE = cgs(Nee,be);
-
-IF.epsETrack{end+1} = IF.ParE;
+%IF.epsE = cgs(Nee,be,1e-7);
+IF.epsE = bicg(Nee,be,1e-8);
 updateParE(IF);
-
-if IF.Chromatic
-    [Ncc]       = calculateNcc(IF);
-    [bc]        = calculateBc(IF);
-    
-    IF.epsC = cgs(Ncc,bc);
-
-    IF.epsCTrack{end+1} = IF.ParC;
-    updateParC(IF);
-end
+IF.epsETrack{end+1} = IF.ParE;
+% if IF.Chromatic
+%     [Ncc]       = calculateNcc(IF);
+%     [bc]        = calculateBc(IF);
+%     
+%     IF.epsC = bicg(Ncc,bc,1e-7);
+% 
+%     IF.epsCTrack{end+1} = IF.ParC;
+%     updateParC(IF);
+% end
 
 end

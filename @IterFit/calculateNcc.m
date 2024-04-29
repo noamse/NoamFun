@@ -8,6 +8,8 @@ end
 
 %Bee = zeros([numel(IF.ParE(:,1)),numel(IF.ParE(:,1)),IF.Nepoch]);
 
+%Bcc = zeros([numel(IF.ParC(:,1)),numel(IF.ParC(:,1)),IF.Nepoch.*numel(IF.ParC(:,1))]);
+%if IF.Chrom
 Bcc = zeros([numel(IF.ParC(:,1)),numel(IF.ParC(:,1)),IF.Nepoch]);
 %W = calculateWs(IF);
 W = calculateWes(IF);
@@ -25,13 +27,17 @@ for Iep=1:IF.Nepoch
         AxC(:,1) = AxC(:,1).*0;
         AyC(:,2) = AyC(:,2).*0;
     else
-        AxC(:,1) = AxC(:,1).*sin(pa(Iep));
-        AyC(:,2) = AyC(:,2).*cos(pa(Iep));
+        AxC = AxC.*sin(pa(Iep));
+        AyC = AyC.*cos(pa(Iep));
+        %AyC(:,1) = AyC(:,2).*cos(pa(Iep));
+        %AyC(:,2) = AyC(:,2).*sin(pa(Iep));
         %AxC(:,1) = AxC(:,1).*(pa(Iep));
         %AyC(:,2) = AyC(:,2).*(pa(Iep));
     end
-    Bcc(:,:,Iep)= Bcc(:,:,Iep) + (AxC'.*W(Iep,:))*AxC + (AyC'.*W(Iep,:))*AyC;
+    %Bcc(:,:,Iep)= Bcc(:,:,Iep) + (AxC'.*W(Iep,:))*AxC + (AyC'.*W(Iep,:))*AyC;
+    %Bcc(:,:,Iep)= Bcc(:,:,Iep) + (AxC'.*W(Iep,:))*AxC + (AyC'.*W(Iep,:))*AyC;
     
+    Bcc(:,:,Iep)= Bcc(:,:,Iep) + (AxC'.*W(Iep,:))*AxC + (AyC'.*W(Iep,:))*AyC;
     
 end
 

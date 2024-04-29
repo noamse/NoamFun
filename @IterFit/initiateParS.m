@@ -4,7 +4,8 @@ arguments
     IF;
     Args.Plx = true;
 end
-if Args.Plx 
+
+if IF.Plx
     ParS = zeros(5,IF.Nsrc);
 else
     ParS = zeros(4,IF.Nsrc);

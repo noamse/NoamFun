@@ -5,9 +5,9 @@ classdef  IterFit< MMS
     
     properties
        Rx; Ry;
-       ParS; ParE;
-       epsS; epsE;
-       epsSTrack; epsETrack;
+       ParS; ParE; ParC;
+       epsS; epsE; epsC;
+       epsSTrack; epsETrack; epsCTrack;
        AsX; AsY;
        AeX; AeY;
        bs; be; 
@@ -16,8 +16,10 @@ classdef  IterFit< MMS
        Ws; We; 
        Wes;
        PlxTerms;
-       Chromatic = false;
+       Chromatic = false; Chrom2D= false;
        Plx = true;
+       UseWeights = true;
+       CelestialCoo =  [4.6273,-0.4646];;
     end
     
     
@@ -48,11 +50,11 @@ classdef  IterFit< MMS
         end
 
         function Aex = get.AeX(IF)
-                [Aex,~]   = generateEpochDesignMat(IF,'Chromatic',IF.Chromatic);
+                [Aex,~]   = generateEpochDesignMat(IF,'Chromatic',false);
         end
         
         function Aey = get.AeY(IF)
-            [~,Aey]   = generateEpochDesignMat(IF,'Chromatic',IF.Chromatic);
+            [~,Aey]   = generateEpochDesignMat(IF,'Chromatic',false);
         end
         
         
@@ -69,23 +71,24 @@ classdef  IterFit< MMS
         
         [ParE]      = initiateParE(IF,Args);
         [Aex,Aey]   = generateEpochDesignMat(IF,Args);
-        [Aex,Aey]   = generateEpochDesignMatChrom(IF);
         
-        [Aex,Aey]   = generateEpochDesignMatChrom(IF);
-        
+        [Acx,Acy]   = generateChromDesignMat(IF,Args);
+        [Hc]        = generateChromaticDesignMat(IF,Args)
         [Nss]       = calculateNss(IF);
         [bs]        = calculateBs(IF);
         
-        [Nss]       = calculateNssChrom(IF);
-        [bs]        = calculateBsChrom(IF);
-
-        [Nss]       = calculateNee(IF);
-        
+        [Nee]       = calculateNee(IF);
         [be]        = calculateBe(IF);
+        
+        
+        [ParC]      = initiateParC(IF,Args);
+        [Ncc]       = calculateNcc(IF);
+        [bc]        = calculateBc(IF);
+        
         [Wes]       = calculateWes(IF);
         [Ws]        = calculateWs(IF);
         [Rx,Ry]     = calculateResiduals(IF);
-        [PlxX,PlxY] = calculatePlxTerms(IF);
+        [PlxX,PlxY] = calculatePlxTerms(IF,);
        
         [Rx,Ry]     = updateResiduals(IF);
         
@@ -96,6 +99,7 @@ classdef  IterFit< MMS
     methods
         updateParS(IF);
         updateParE(IF);
+        updateParC(IF);
         runIter(IF);
         startupIF(IF)
         
@@ -105,7 +109,7 @@ classdef  IterFit< MMS
     
     methods
         [Bx,By] =plotSource(IF,IndSrc)
-        plotResRMS(IF)
+        [RStdPrcX,RStdPrcY,M] = plotResRMS(IF,Args)
     end
 end
 

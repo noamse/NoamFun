@@ -9,7 +9,7 @@ arguments
    Args.NRefMagBin=2;
    Args.FitRadius = 3;
    Args.HalfSize = 8;
-   Args.UseSourceNoise = 'all';
+   Args.UseSourceNoise = true;
    Args.PSFfitMaxIter = 30;
    Args.PSFfitConvThresh = 1e-4;
    Args.RecenterPSF=false;
@@ -61,13 +61,14 @@ for Ibin = 1:numel(N)
                                         Inf,...
                                         {'RefX','RefY','RefMag','Niter'},...
                                         {'pix',    'pix',   'mag',''});
+
     [Im,res] = ml.pipe.psfFitPhot(Im,'XY',[XY(flag_bin,1),XY(flag_bin,2)],'FitRadius',Args.FitRadius,'HalfSize',Args.HalfSize,'ColSN','SN_1',...
-        'psfPhotCubeArgs',{'ConvThresh',Args.PSFfitConvThresh,'MaxIter',Args.PSFfitMaxIter ,'UseSourceNoise',Args.UseSourceNoise});
+        'psfPhotCubeArgs',{'UseSourceNoise',Args.UseSourceNoise});
     SrcCat = Im.CatData.getCol({'X','Y','FLUX_PSF'});
     
     flagnan = ~any(isnan(SrcCat),2);
     S = imUtil.art.injectSources(Im.sizeImage,SrcCat(flagnan,:),PSF,'RecenterPSF',Args.RecenterPSF);
-    Im = Im- S;
+    Im.Image = Im.Image- S;
     Cat(Ibin)= Im.astroImage2AstroCatalog;
     Res(Ibin)=res;
     Im.CatData=AstroCatalog;

@@ -14,4 +14,5 @@ if ~InPar.IsFile
 end
 if InPar.CutDropbox
     path = erase(path,'/Dropbox (Weizmann Institute)');
+    path = strrep(path,'data1','home');
 end

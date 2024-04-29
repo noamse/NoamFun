@@ -86,7 +86,7 @@ function [ResultObj, Result] = psfFitPhot(Obj, Args)
         Args.CreateNewObj logical    = false;
         Args.mexCutout logical       = true;
         Args.Circle logical          = false;
-        Args.psfPhotCubeArgs cell    = {};
+        Args.psfPhotCubeArgs cell    = {'UseSourceNoise',true};
         Args.ZP                      = 25;
 
         Args.ColSN                   = 'SN_3';  % if empty don't use
@@ -169,6 +169,7 @@ function [ResultObj, Result] = psfFitPhot(Obj, Args)
             % PSF fitting
             
             % Cube is Background subtracted
+
             [Result, ~] = ml.pipe.psfPhotCubeLM(Cube, 'PSF',PSF,...
                                                                     'Std',Std,...
                                                                     'Back',0,...
@@ -176,7 +177,6 @@ function [ResultObj, Result] = psfFitPhot(Obj, Args)
                                                                     'ZP',Args.ZP,...
                                                                     'backgroundCubeArgs',Args.backgroundCubeArgs,...
                                                                     Args.psfPhotCubeArgs{:});
-                 
             
             % source measured position is at:
             % RoundX + Result.DX

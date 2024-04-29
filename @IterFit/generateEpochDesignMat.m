@@ -5,7 +5,7 @@ arguments
     Args.Chromatic = false;
 end
 
-if Args.Chromatic 
+if IF.Chromatic 
     C = median(IF.Data.C)';
     Aex = [IF.ParS(1,:)',IF.ParS(2,:)',ones(size(IF.ParS(2,:)')),...
         zeros(size(IF.ParS(2,:)')),zeros(size(IF.ParS(2,:)')),zeros(size(IF.ParS(2,:)')),...
