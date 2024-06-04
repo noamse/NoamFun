@@ -25,6 +25,7 @@ arguments
     Args.Dmin_thresh = 3; Args.DistFromBound = 8;
     Args.SettingFileName = 'master.txt';
     Args.MaxRefMagPattern = 17;
+    Args.ReCalcBack = true;
     %Args.max_I = 18.3;
     %Args.mexCutout=true;
     %Args.ExtractWithRef = true;

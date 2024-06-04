@@ -31,7 +31,8 @@ end
 
 %FitRadius = Im.PSFData.fwhm*0.9;
 
-Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',IR.Set.FitRadius,'NRefMagBin',IR.Set.NRefMagBin,'UseSourceNoise',IR.Set.UseSourceNoise);
+Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',IR.Set.FitRadius,'NRefMagBin',IR.Set.NRefMagBin,...
+    'UseSourceNoise',IR.Set.UseSourceNoise,'ReCalcBack',IR.Set.ReCalcBack);
 %Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',FitRadius,'NRefMagBin',IR.Set.NRefMagBin);
 IR.populateMetaData(Cat,Im);
 saveOutputCat(IR,Cat)

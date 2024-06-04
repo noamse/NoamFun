@@ -18,15 +18,16 @@ W = calculateWes(IF);
 %Bc = zeros(IF.Nepoch.*numel(IF.ParC(:,1),1));
 Bc = [];
 pa = IF.getTimeSeriesField(1,{'pa'});
+secz = IF.getTimeSeriesField(1,{'secz'});
 for Iep=1:IF.Nepoch
     AxC=Acx;
     AyC=Acy;
-    if isnan(pa(Iep))
+    if isnan(pa(Iep)) || isnan(secz(Iep))
         AxC = AxC.*0;
         AyC = AyC.*0;
     else
-        %AxC= AxC(:,1).*sin(pa(Iep));
-        %AyC = AyC(:,1).*cos(pa(Iep));
+        AxC(:,1)= AxC(:,1).*sin(pa(Iep)).*secz(Iep);
+        AyC(:,2) = AyC(:,2).*cos(pa(Iep)).*secz(Iep);
         %AxC= AxC.*(pa(Iep));
         %AyC = AyC.*(pa(Iep));
     end
@@ -37,9 +38,9 @@ for Iep=1:IF.Nepoch
     %Bc= [Bc;reshape(AxC'.*W(Iep,:)*(Rx(:,Iep)) ,[],1)];
     if IF.Chrom2D
         %Bc= [Bc;reshape(AyC'.*W(Iep,:)*(Ry(:,Iep)) ,[],1)];
-        Bc= [Bc;reshape(AxC'.*W(Iep,:)*(Rx(:,Iep)) +  AyC'.*W(Iep,:)*(Ry(:,Iep)) ,[],1)];
+        Bc= [Bc;reshape(AxC'.*W(Iep,:)*(Rx(Iep,:)') +  AyC'.*W(Iep,:)*(Ry(Iep,:)') ,[],1)];
     else
-        Bc= [Bc;reshape(AyC'.*W(Iep,:)*(Ry(:,Iep)) ,[],1)];
+        Bc= [Bc;reshape(AyC'.*W(Iep,:)*(Ry(Iep,:)) ,[],1)];
     end
 end
 

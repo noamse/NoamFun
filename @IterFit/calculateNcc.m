@@ -19,16 +19,16 @@ W = calculateWes(IF);
 %Aey = IF.AeY;
 [Acx,Acy]   = generateChromDesignMat(IF);
 pa = IF.getTimeSeriesField(1,{'pa'});
-    
+secz= IF.getTimeSeriesField(1,{'secz'});
 for Iep=1:IF.Nepoch
     AxC=Acx;
     AyC=Acy;
-    if isnan(pa(Iep))
+    if isnan(pa(Iep)) || isnan(secz(Iep))
         AxC(:,1) = AxC(:,1).*0;
         AyC(:,2) = AyC(:,2).*0;
     else
-        AxC = AxC.*sin(pa(Iep));
-        AyC = AyC.*cos(pa(Iep));
+        AxC = AxC.*sin(pa(Iep)).*secz(Iep);
+        AyC = AyC.*cos(pa(Iep)).*secz(Iep);
         %AyC(:,1) = AyC(:,2).*cos(pa(Iep));
         %AyC(:,2) = AyC(:,2).*sin(pa(Iep));
         %AxC(:,1) = AxC(:,1).*(pa(Iep));

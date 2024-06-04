@@ -16,10 +16,11 @@ classdef  IterFit< MMS
        Ws; We; 
        Wes;
        PlxTerms;
-       Chromatic = false; Chrom2D= false;
+       Chromatic = false; Chrom2D= true;
        Plx = true;
        UseWeights = true;
-       CelestialCoo =  [4.6273,-0.4646];;
+       CelestialCoo =  [4.6273,-0.4646];
+       newWeights =false;
     end
     
     
@@ -110,6 +111,7 @@ classdef  IterFit< MMS
     methods
         [Bx,By] =plotSource(IF,IndSrc)
         [RStdPrcX,RStdPrcY,M] = plotResRMS(IF,Args)
+        [Chi2X,Chi2Y,NbinX,NbinY]= chi2Tests(IF,Args)
     end
 end
 

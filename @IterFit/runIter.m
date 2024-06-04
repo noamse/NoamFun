@@ -32,14 +32,14 @@ updateParS(IF);
 IF.epsE = bicg(Nee,be,1e-8);
 updateParE(IF);
 IF.epsETrack{end+1} = IF.ParE;
-% if IF.Chromatic
-%     [Ncc]       = calculateNcc(IF);
-%     [bc]        = calculateBc(IF);
-%     
-%     IF.epsC = bicg(Ncc,bc,1e-7);
-% 
-%     IF.epsCTrack{end+1} = IF.ParC;
-%     updateParC(IF);
-% end
+if IF.Chromatic
+     [Ncc]       = calculateNcc(IF);
+     [bc]        = calculateBc(IF);
+     
+     IF.epsC = bicg(Ncc,bc,1e-7);
+ 
+     IF.epsCTrack{end+1} = IF.ParC;
+     updateParC(IF);
+end
 
 end

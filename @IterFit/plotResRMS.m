@@ -10,8 +10,8 @@ end
 Wes=  IF.calculateWes;
 Wes=median(Wes,2);
 Wes = Wes/max(Wes);
-FlagW = Wes>0.8;
-FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1));
+FlagW = ones(size(Wes));%Wes>0.8;
+FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1)| isoutlier(sqrt(Ry.^2 + Rx.^2),1));
 Flag = logical(FlagOut.*FlagW);
 Flag =FlagOut;
 Rx(~Flag)=nan;

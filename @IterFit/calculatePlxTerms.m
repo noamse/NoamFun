@@ -12,7 +12,7 @@ end
     
     RA = Args.Coo(1);
     Dec = Args.Coo(2);
-    PlxX= -(X.*sin(RA)- Y.*cos(RA)); 
+    PlxX= (X.*sin(RA)- Y.*cos(RA)); 
     PlxY= (X.*cos(RA).*sin(RA) + Y.*sin(RA).*sin(Dec) - Z.*cos(Dec)); 
 
 end
