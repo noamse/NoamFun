@@ -5,9 +5,9 @@ classdef  IterFit< MMS
     
     properties
        Rx; Ry;
-       ParS; ParE; ParC;
-       epsS; epsE; epsC;
-       epsSTrack; epsETrack; epsCTrack;
+       ParS; ParE; ParC;ParHalat;
+       epsS; epsE; epsC; epsHalat;
+       epsSTrack; epsETrack; epsCTrack; epsHalatTrack;
        AsX; AsY;
        AeX; AeY;
        bs; be; 
@@ -16,11 +16,14 @@ classdef  IterFit< MMS
        Ws; We; 
        Wes;
        PlxTerms;
-       Chromatic = false; Chrom2D= true;
+       Chromatic = false; Chrom2D= false;
+       HALat = false;
        Plx = true;
        UseWeights = true;
        CelestialCoo =  [4.6273,-0.4646];
        newWeights =false;
+       AffSecondOrder = false;
+       
     end
     
     
@@ -74,7 +77,7 @@ classdef  IterFit< MMS
         [Aex,Aey]   = generateEpochDesignMat(IF,Args);
         
         [Acx,Acy]   = generateChromDesignMat(IF,Args);
-        [Hc]        = generateChromaticDesignMat(IF,Args)
+        [Acx,Acy,Ac]        = generateChromaticDesign(IF,Args)
         [Nss]       = calculateNss(IF);
         [bs]        = calculateBs(IF);
         
@@ -93,14 +96,24 @@ classdef  IterFit< MMS
        
         [Rx,Ry]     = updateResiduals(IF);
         
+        [RstdX,RstdY] = calculateRstd(IF);
         
-        
+        [ParHalat]      = initiateParHalat(IF,Args);       
+        [AhalatX,AhalatY]   = generateHALatDesignMat(IF,Args);
+        [Nhalat]  = calculateNhalat(IF,Args);
+        [Bhalat]  = calculateBhalat(IF,Args);
+
+        [ParPix]      = initiateParPix(IF,Args);       
+        [ApixX,ApixY]   = generatePixDesignMat(IF,Args);
+        [Npix]  = calculateNpix(IF,Args);
+        [Bpix]  = calculateBpix(IF,Args);
     end
     
     methods
         updateParS(IF);
         updateParE(IF);
         updateParC(IF);
+        updateParHalat(IF);
         runIter(IF);
         startupIF(IF)
         

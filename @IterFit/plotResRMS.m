@@ -6,18 +6,19 @@ arguments
     Args.title = '';
     Args.PlotY= true;
 end
-[Rx,Ry] = IF.calculateResiduals;
-Wes=  IF.calculateWes;
-Wes=median(Wes,2);
-Wes = Wes/max(Wes);
-FlagW = ones(size(Wes));%Wes>0.8;
-FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1)| isoutlier(sqrt(Ry.^2 + Rx.^2),1));
-Flag = logical(FlagOut.*FlagW);
-Flag =FlagOut;
-Rx(~Flag)=nan;
-Ry(~Flag)=nan;
-RStdPrcX= rms(Rx,'omitnan')'*400;
-RStdPrcY= rms(Ry,'omitnan')'*400;
+% [Rx,Ry] = IF.calculateResiduals;
+% Wes=  IF.calculateWes;
+% Wes=median(Wes,2);
+% Wes = Wes/max(Wes);
+% FlagW = ones(size(Wes));%Wes>0.8;
+% FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1)| isoutlier(sqrt(Ry.^2 + Rx.^2),1));
+% Flag = logical(FlagOut.*FlagW);
+% Flag =FlagOut;
+% Rx(~Flag)=nan;
+% Ry(~Flag)=nan;
+% RStdPrcX= rms(Rx,'omitnan')'*400;
+% RStdPrcY= rms(Ry,'omitnan')'*400;
+[RStdPrcX,RStdPrcY] = IF.calculateRstd;
 
 M = IF.medianFieldSource({'MAG_PSF'});
 
@@ -26,13 +27,13 @@ if (Args.closeall)
 end
 
 figure;
-semilogy(M,RStdPrcX,'.')
+semilogy(M,RStdPrcX,'.','Color',[0.5,0.2,0.8])
 xlabel('I')
 ylabel('rstd(Rx) [mas]')
 title(Args.title)
 if Args.PlotY
     figure;
-    semilogy(M,RStdPrcY,'.')
+    semilogy(M,RStdPrcY,'.','Color',[0.5,0.2,0.8],'MarkerSize',15)
     xlabel('I')
     ylabel('rstd(Ry) [mas]')
     title(Args.title)

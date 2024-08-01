@@ -32,14 +32,25 @@ ModelX = IF.AsX * IF.ParS;
 ModelY = IF.AsY * IF.ParS;
  if IF.Chromatic
      pa = IF.getTimeSeriesField(1,{'pa'});
+     secz= IF.getTimeSeriesField(1,{'pa'});
      [Acx,Acy]   = generateChromDesignMat(IF);
      ParC=IF.ParC;
-     ParC(1,:) = ParC(1,:).*sin(pa');
-     ParC(2,:) = ParC(2,:).*cos(pa');
-     ParC(isnan(ParC))=0;
-     
-     ModelX = ModelX + (Acx * ParC)';
-     ModelY = ModelY + (Acy * ParC)';
+     if IF.Chrom2D
+        ParC(1,:) = ParC(1,:).*sin(pa').*secz';
+        ParC(2,:) = ParC(2,:).*cos(pa').*secz';
+        ParC(isnan(ParC))=0;
+        ModelX = ModelX + (Acx * ParC)';
+        ModelY = ModelY + (Acy * ParC)';
+     else
+        %ParCx = ParC.*sin(pa').*secz';
+        %ParCy = ParC.*cos(pa').*secz';
+        ParCx = ParC.*sin(pa');
+        ParCy = ParC.*cos(pa');
+        ParCx (isnan(ParCx ))=0;
+        ParCy (isnan(ParCy ))=0;
+        ModelX = ModelX + (Acx * ParCx)';
+        ModelY = ModelY + (Acy * ParCy)';
+     end
  end
 ModelX = ModelX(:,SourceInd);
 ModelY = ModelY(:,SourceInd);

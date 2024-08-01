@@ -8,6 +8,7 @@ IF.epsSTrack = {}; IF.epsETrack={};
 %[IF.ParE]      = IF.initiateParE('Chromatic',IF.Chromatic);
 [IF.ParE]      = IF.initiateParE;
 [IF.ParC]      = IF.initiateParC;
+[IF.ParHalat]      = IF.initiateParHalat;
 IF.epsSTrack{1} = IF.ParS;
 IF.epsETrack{1} = IF.ParE;
 IF.epsCTrack{1} = IF.ParC;

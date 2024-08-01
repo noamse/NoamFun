@@ -20,7 +20,7 @@ if IF.Chrom2D
     Acx = [C,zeros(size(C))];
     Acy = [zeros(size(C)),C];
 else
-    Acx =zeros(size(C));
+    Acx = C;
     Acy = C;
 end
 
