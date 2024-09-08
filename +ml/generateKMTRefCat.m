@@ -11,9 +11,10 @@ arguments
     Args.MaxRefMagPattern = [];
     Args.ColName9K = {'X','Y','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
     Args.SaveCat= true;
+    Args.HistoryKey  = 'HISTORY';
 end
 
-RefTab = ml.kmt.read_kmt9k_cat(ImPath,'MaxMag',Set.MaxRefMag);
+RefTab = ml.kmt.read_kmt9k_cat(ImPath,'MaxMag',Set.MaxRefMag,'HistoryKey',Args.HistoryKey );
 Im = AstroImage(ImPath );
 Im.Image=single(Im.Image);
 Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadSources',true,'BackPar',...
@@ -29,11 +30,14 @@ MaxI = Isort(round(numel(Im.CatData.Catalog(:,1))));
 RefCatNew = RefTab;
 RefCatNew(:,[1,2]) =[NewX,NewY];
 
+% Check chromatics 
+
+
 %ColName = {'DB_no','X','Y','Xchip','Ychip','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
 %ColName9K = {'X','Y','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
 RefCat = AstroCatalog({RefCatNew},'ColNames',Args.ColName9K);
-
-
+%flagChromatic= RefCat.getCol('V-I')<1.8 & RefCat.getCol('V-I')>1;
+%RefCat.Catalog = RefCat.Catalog(flagChromatic,:);
 
 %save([TargetPath , 'RefCat.mat'],'RefCat');
 %Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',412,'CCDSEC_xu',612,'CCDSEC_yd',412,'CCDSEC_yu',612);

@@ -23,6 +23,7 @@ classdef  IterFit< MMS
        CelestialCoo =  [4.6273,-0.4646];
        newWeights =false;
        AffSecondOrder = false;
+       ChromaicHighOrder = true;
        
     end
     
@@ -65,6 +66,12 @@ classdef  IterFit< MMS
 
         
         
+    end
+
+    methods (Static)
+        IF = runIterFit(Obj,Args);
+
+
     end
     methods
        % Populate variable
@@ -116,7 +123,7 @@ classdef  IterFit< MMS
         updateParHalat(IF);
         runIter(IF);
         startupIF(IF)
-        
+
         
     end
     

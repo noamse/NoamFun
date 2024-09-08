@@ -4,12 +4,14 @@ arguments
     Obj;
     MatchedCat;
     Args.ReturnCols = {'X','Y','MAG_PSF' ,'FLUX_PSF'...
-        ,'fwhm','secz','pa','PSF_CHI2DOF','SN','RefMag'};
+        ,'fwhm','secz','pa','PSF_CHI2DOF','SN','RefMag','DeltaPSFXY'...
+        ,'EXPTIME','FATILTEW','FATILTNS','FAFOCUS','CCDTEMP'...
+        ,'ha','alt','Yphase', 'Xphase'};
     Args.ConfigFilePath = '';
     Args.ColNameX = 'X';
     Args.ColNameY = 'Y';
     Args.ColNameMag = 'MAG_PSF';
-    Args.fitAffineArgs={'MaxRefMag',17};
+    Args.fitAffineArgs={'MaxRefMag',19};
     Args.fitRefZPArgs={};
     Args.applyZPArgs = {};
     Args.fitProperMotionArgs = {};
@@ -19,6 +21,8 @@ arguments
     Args.fitPlx = false;
     Args.RefCat=[];
     Args.fitProperMotionLogical = true;
+    Args.UseRefCat  =false;
+    Args.RemovePhotometricOutliers = false;
 end
 
 JD= [MatchedCat.JD];
@@ -28,13 +32,19 @@ end
 
 Obj.addMatrix(MatchedCat,Args.ReturnCols);
 % Flag = flagUnmached(Obj,Args); %Maybe implement imedietly?
-RefCoo= Obj.medianFieldSource({'X','Y'});
+if Args.UseRefCat & isa(Args.RefCat,'AstroCatalog')
+    RefCoo = Args.RefCat.getCol({'X','Y'});
+else
+    RefCoo= Obj.medianFieldSource({'X','Y'});
+end
 AffineMat= Obj.fitAffine(RefCoo,Args.fitAffineArgs{:});
 Obj.applyAffineTran(AffineMat);
 ZP = Obj.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag',Args.fitRefZPArgs{:});
 Obj.applyZP(ZP,'ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
-[Out]  = photometryOutliers(Obj,Args.photometryOutliersArgs{:});
-Obj.applySourceFlag(~Out);
+if Args.RemovePhotometricOutliers
+    [Out]  = photometryOutliers(Obj,Args.photometryOutliersArgs{:});
+    Obj.applySourceFlag(~Out);
+end
 if Args.fitProperMotionLogical
     [Obj.PMX,Obj.PMY,Obj.PMErr] = Obj.fitProperMotion(Args.fitProperMotionArgs{:});
     [XPMRef,YPMRef]= getGlobalRefMat(Obj);

@@ -12,6 +12,7 @@ arguments
     Args.MaxMag = 19;
     Args.Ncols = 12; 
     Args.Verbose = true;
+    Args.HistoryKey = 'HISTORY';
 end
 
 
@@ -20,7 +21,8 @@ ccdname = Header.getVal('CCDNAME');
 ccdname = split(ccdname );
 ccdname = ccdname{end};
 fieldname = Header.getVal('OBJECT');
-history_str = Header.getVal('HISTORY');
+history_str = Header.getVal(Args.HistoryKey);
+
 CCDSEC= str2double(split(history_str,{'[',':',',',']'}));
 CCDSEC(isnan(CCDSEC)) = [];
 

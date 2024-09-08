@@ -9,7 +9,7 @@ arguments
     Args.NRefMagBin = 5;
     Args.ColNameMag = 'I';
     Args.UseSourceNoise = true;
-    Args.ReCalcBack = true;
+    Args.ReCalcBack = false;
     Args.RecenterPSF= false;
     Args.HalfSize   = 10;
     

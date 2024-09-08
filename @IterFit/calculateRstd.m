@@ -9,7 +9,9 @@ end
 
 [Rx,Ry] = IF.calculateResiduals;
 
-FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1)| isoutlier(sqrt(Ry.^2 + Rx.^2),1));
+FlagOut = ~(isoutlier(Rx,'movmedian',20,"ThresholdFactor",1.5,'SamplePoints',IF.JD) ...
+        | isoutlier(Ry,'movmedian',20,"ThresholdFactor",1.5,'SamplePoints',IF.JD)...
+        | isoutlier(IF.Data.MAG_PSF,'movmedian',20,"ThresholdFactor",1.5,'SamplePoints',IF.JD));
 Flag =FlagOut;
 Rx(~Flag)=nan;
 Ry(~Flag)=nan;

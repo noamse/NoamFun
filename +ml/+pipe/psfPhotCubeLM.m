@@ -271,7 +271,11 @@ for Isource = 1:size(Cube,3)
     fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevel).^2;
     %
     x = lsqnonlin(fmin,x0,[],[],options);
-    
+    % test for using the fitted PSF as noise
+    PSFfitted  =imUtil.trans.shift_fft(PSF, x(1), x(2)).*x(3);
+    stdlevelSource = sqrt(stdlevel.^2 + PSFfitted );
+    fmin = @(x) double(Flag(:,:,Isource).*(imUtil.trans.shift_fft(PSF, x(:,1), x(:,2)).*x(:,3) - Cube(:,:,Isource))./stdlevelSource).^2;
+    x = lsqnonlin(fmin,x,[],[],options);
     DX(Isource) = x(1); 
     DY(Isource) = x(2);
     AppFlux(Isource) = x(3);

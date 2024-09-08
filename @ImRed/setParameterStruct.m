@@ -10,7 +10,7 @@ arguments
     Args.HalfSize= 10;
     Args.SNRforPSFConstruct = 70;
     Args.FitRadius=3;
-    Args.InerRadiusKernel = 2;
+    
     Args.FindMeasureRemoveBad= true;
     Args.Telescope= 'CTIO';
     Args.findMeasureSourceUsePSF = true;
@@ -20,9 +20,11 @@ arguments
     Args.NRefMagBin=8;
     Args.FitWings=true;
     Args.fitPSFKernelModel='mtd';
+    Args.InerRadiusKernel = 2;
     Args.FitRadiusKernel = 5;
+    
     Args.Band=  'I';
-    Args.Dmin_thresh = 3; Args.DistFromBound = 8;
+    Args.Dmin_thresh = 3; Args.DistFromBound = 10;
     Args.SettingFileName = 'master.txt';
     Args.MaxRefMagPattern = 17;
     Args.ReCalcBack = true;

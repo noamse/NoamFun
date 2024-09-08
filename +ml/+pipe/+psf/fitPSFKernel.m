@@ -39,7 +39,7 @@ if Args.FitWings
             [matx,maty]= meshgrid(VecXrel,VecYrel);
             Rrel2 = matx.^2+maty.^2;
             
-            fit_region_flag = Rrel2<Args.FitRadius.^2 & Rrel2>Args.InerRadius.^2 ;
+            fit_region_flag = Rrel2<=Args.FitRadius.^2 & Rrel2>=Args.InerRadius.^2 ;
             
             func_min = @(x) mtd_func_min(x,PSF,Args.StampSize, fit_region_flag,w);
             a  = fminsearch(func_min ,x0);

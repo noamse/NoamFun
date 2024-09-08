@@ -1,0 +1,20 @@
+function [FileNames] = generateImages(SA,Args)
+arguments
+    SA;
+    Args.SaveImages= true;
+    Args.ImageTargetFolder = '/home/noamse/KMT/data/simulation/simulatedIM/'
+end
+
+
+
+ZEROIM = zeros(SA.Npix,SA.Npix);
+for Iepoch = 1:SA.Nepoch
+
+    Im = AstroImage;
+    Image = ZEROIM;
+    Image =Image  + poissrnd(BackFlux,size(Image,1),size(Im.Image,2));
+    Image =Image+ imUtil.art.injectSources(Image,SrcCat,SrcPSF ,'RecenterPSF',false);
+    Im.Image=Image;
+    Im.HeaderD
+end
+

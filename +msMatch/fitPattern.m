@@ -9,14 +9,15 @@ arguments
     Args.ColNameY = 'Y';
     Args.ColNameRefX = 'RefX';
     Args.ColNameRefY = 'RefY';
+    Args.RefCat      = [];     % AstroCatalog with reference position in first two columns. 
     Args.Scale                   = 1.0; % scale or [min max] range that require to ?
     Args.HistDistEdgesRotScale   = [10 600 300];
     Args.HistDistEdgesRot        = (12:3:100).';
     Args.HistRotEdges            = (-5:1:5);  % rotation or [min max] rotation that require to ?
-    Args.RangeX                  = [-30.5 30.5];
-    Args.RangeY                  = [-30.5 30.5];
-    Args.StepX                   = 0.1;
-    Args.StepY                   = 0.1;
+    Args.RangeX                  = [-16 16];
+    Args.RangeY                  = [-16 16];
+    Args.StepX                   = 0.2;
+    Args.StepY                   = 0.2;
     Args.Flip                    = [1 1];
     
     
@@ -31,8 +32,12 @@ arguments
     
 end
 
+if ~isempty(Args.RefCat) & isa(Args.RefCat,'AstroCatalog')
+    RefCat = Args.RefCat; 
+else
 
-RefCat = AstroCatalog({Cats(1).getCol({Args.ColNameRefX,Args.ColNameRefY})},'ColNames',{Args.ColNameRefX,Args.ColNameRefY});
+    RefCat = AstroCatalog({Cats(1).getCol({Args.ColNameRefX,Args.ColNameRefY})},'ColNames',{Args.ColNameRefX,Args.ColNameRefY});
+end
 % match catalogs
 if nargout>1
     OutputArgs = cell(1,3);
@@ -48,7 +53,6 @@ if ~isempty(Args.MaxRefMag)
 end
 
 for IndCat = 1:numel(Cats)
-    
     [OutputArgs{1:Nargs}] = imUtil.patternMatch.match_scale_rot_shift(RefCat.Catalog, Cats(IndCat).getCol({Args.ColNameX,Args.ColNameY}),...
         'CatColX',1, 'CatColY',2,...
         'RefColX',1, 'RefColY',2,...

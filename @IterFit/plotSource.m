@@ -59,21 +59,24 @@ AffineX = -AffineX(:,SourceInd);
 AffineY = (IF.AeY * IF.ParE)';
 AffineY = -AffineY(:,SourceInd);
 
+
+OutMag = isoutlier(TS(:,3),'movmedian',Args.TimeBinSize,"ThresholdFactor",1.5,'SamplePoints',IF.JD);
+flagTS = ~OutMag;
 if Args.PlotMag
     ax1=subplot(3,1,1);
-    plot(IF.JD-2450000,TS(:,3),'.','Color',Args.Color);
+    plot(IF.JD(flagTS)-2450000,TS(flagTS,3),'.','Color',Args.Color);
     ylabel('I [mag]','interpreter','latex')
     set(gca,'YDir','reverse')
     ax2= subplot(3,1,2);
-    plot(IF.JD-2450000,TS(:,1)+AffineX,'.','Color',Args.Color);
+    plot(IF.JD(flagTS)-2450000,TS(flagTS,1)+AffineX(flagTS),'.','Color',Args.Color);
     hold on;
-    plot(IF.JD-2450000,ModelX);
+    plot(IF.JD(flagTS)-2450000,ModelX(flagTS));
     ylabel('X [pix]','interpreter','latex')
     hold off;
     ax3= subplot(3,1,3);
-    plot(IF.JD-2450000,TS(:,2)+AffineY,'.','Color',Args.Color);
+    plot(IF.JD(flagTS)-2450000,TS(flagTS,2)+AffineY(flagTS),'.','Color',Args.Color);
     hold on;
-    plot(IF.JD-2450000,ModelY);
+    plot(IF.JD(flagTS)-2450000,ModelY(flagTS));
     ylabel('Y [pix]','interpreter','latex')
     xlabel('JD','interpreter','latex');
     linkaxes([ax1,ax2,ax3],'x');
@@ -96,7 +99,8 @@ end
 
 
 
-OutMag=isoutlier(TS(:,3),"movmedian",Args.TimeBinSize);
+%OutMag=isoutlier(TS(:,3),"movmedian",Args.TimeBinSize);
+OutMag = isoutlier(TS(:,3),'movmedian',Args.TimeBinSize,"ThresholdFactor",1.5,'SamplePoints',IF.JD);
 Ytag = TS(:,2)+AffineY;
 DY = (Ytag - ModelY);
 OutY=isoutlier(DY,1);

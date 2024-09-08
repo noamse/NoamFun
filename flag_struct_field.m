@@ -1,4 +1,4 @@
-function st = flag_struct_field(st,Flag,varargin)
+function st = flag_struct_field(st,Flag,Args)
 
 % apply Flag for struct fields
 % Input:
@@ -12,22 +12,26 @@ function st = flag_struct_field(st,Flag,varargin)
 %           flag by rows.
 %   Example: st = flag_struct_field(st,Flag,'Field',{'JD','ALPHAWIN_J2000'});
 % 
+arguments
+    st %Struct
+    Flag %Flag
+    Args.Fields = [];
+    Args.FlagByCol=false;
+
+end
 
 
-DefV.Fields=[];
-DefV.FlagByCol=false;
-InPar = InArg.populate_keyval(DefV,varargin,mfilename);
 
-if ~isempty(InPar.Fields)
+if ~isempty(Args.Fields)
 
-    Fields = InPar.Fields;
+    Fields = Args.Fields;
 else
     Fields = fieldnames(st);
 
 end
 
 for i = 1:numel(Fields)
-    if InPar.FlagByCol
+    if Args.FlagByCol
         st.(Fields{i})  = st.(Fields{i})(:,Flag);
     else
         st.(Fields{i})  = st.(Fields{i})(Flag,:);

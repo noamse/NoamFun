@@ -8,7 +8,13 @@ end
 
     %ParC = zeros(1,IF.Nepoch);
     
-    ParHalat = zeros(18,IF.Nsrc);
+    %ParHalat = zeros(18,IF.Nsrc);
+    if IF.ChromaicHighOrder
+        ParHalat = zeros(18,IF.Nsrc);
+    else
+        ParHalat = zeros(6,IF.Nsrc);
+    end
+
     
 end
 

@@ -4,12 +4,12 @@ arguments
     self;
     Im;
     Args.RefColNameMag= 'I';
-    Args.MaxRefMagPattern = 17;
+    Args.MaxRefMagPattern = 17.5;
     Args.MatchRadius = 3;
     Args.AffineScale = [0.8,1.2];
     Args.PatternRange = [-100,100];
     Args.MatchRadiusPattern = 1;
-    Args.PatternStep = 0.1;
+    Args.PatternStep = 0.05;
 end
 RefCat = self.RefCatalog.copy();
 

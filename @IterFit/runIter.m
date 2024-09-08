@@ -17,22 +17,20 @@ end
 
 
 
+[Nee]       = calculateNee(IF);
+[be]        = calculateBe(IF);
+[IF.epsE,~]= bicg(Nee,be,1e-8);
+updateParE(IF);
+IF.epsETrack{end+1} = IF.ParE;
 
 [Nss]       = calculateNss(IF);
 [bs]        = calculateBs(IF);
 [IF.epsS,~] = bicg(Nss,bs,1e-8);
-IF.epsSTrack{end+1} = IF.ParS;
 updateParS(IF);
-
-[Nee]       = calculateNee(IF);
-[be]        = calculateBe(IF);
+IF.epsSTrack{end+1} = IF.ParS;
 
 
-%IF.epsE = cgs(Nee,be,1e-7);
-[IF.epsE,~]= bicg(Nee,be,1e-8);
-updateParE(IF);
 
-IF.epsETrack{end+1} = IF.ParE;
 
 
 if IF.HALat
@@ -46,9 +44,8 @@ if IF.HALat
       [Nhalat]    = calculateNhalat(IF);
       [Bhalat]    = calculateBhalat(IF);
       [IF.epsHalat,~]= bicg(Nhalat,Bhalat,1e-7);
-      IF.epsHalatTrack{end+1} = IF.ParC;
       updateParHalat(IF);
-
+      IF.epsHalatTrack{end+1} = IF.ParC;
 end
 
 

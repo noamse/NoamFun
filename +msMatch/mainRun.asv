@@ -6,14 +6,12 @@ arguments
    Args.applyPatternArgs= {};
    Args.matchCatsArgs = {};
    Args.UseReference
-   Args.RefCat = [];
 end
 
 Flag = ~Cats.isemptyCatalog & Cats.isColumn({'X'}) & Cats.isColumn({'Y'});
 Cats = Cats(Flag);
 %Obj.Cats=Cats;
-
-[Res]= msMatch.fitPattern(Cats,'RefCat',Args.RefCat,Args.fitPatternArgs{:});
+[Res]= msMatch.fitPattern(Cats,Args.fitPatternArgs{:});
 
 [Trans,FlagFailed] = msMatch.readPatternTrans(Res);
 

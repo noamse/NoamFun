@@ -5,6 +5,7 @@ arguments
     Args.closeall = false;
     Args.title = '';
     Args.PlotY= true;
+    Args.Plot2D = true;
 end
 % [Rx,Ry] = IF.calculateResiduals;
 % Wes=  IF.calculateWes;
@@ -27,14 +28,23 @@ if (Args.closeall)
 end
 
 figure;
-semilogy(M,RStdPrcX,'.','Color',[0.5,0.2,0.8])
+semilogy(M,RStdPrcX,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
 xlabel('I')
-ylabel('rstd(Rx) [mas]')
+ylabel('rms(Rx) [mas]')
 title(Args.title)
 if Args.PlotY
     figure;
-    semilogy(M,RStdPrcY,'.','Color',[0.5,0.2,0.8],'MarkerSize',15)
+    semilogy(M,RStdPrcY,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
     xlabel('I')
-    ylabel('rstd(Ry) [mas]')
+    ylabel('rms(Ry) [mas]')
+    title(Args.title)
+end
+
+
+if Args.Plot2D 
+    figure;
+    semilogy(M,sqrt(RStdPrcY.^2 +RStdPrcX.^2) ,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    xlabel('I')
+    ylabel('rms(R) [mas]')
     title(Args.title)
 end

@@ -3,7 +3,7 @@ arguments
    self;
    Im;
    Args.findMeasureSourcesArgs = {'Threshold',60,'PsfFunPar',{[0.5; 1.0; 1;]},...
-       'RemoveBadSources',true,'ReCalcBack',true};
+       'RemoveBadSources',true,'ReCalcBack',true,'BackPar',{'BackFun','@median'}};
    Args.constructPSFSmoothWings = true;
    Args.HalfSize = 10;
    
