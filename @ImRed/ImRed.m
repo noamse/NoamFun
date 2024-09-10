@@ -18,6 +18,7 @@ classdef ImRed
         methods(Static)
             p = testFun(tol)
             [Cat] = runPipe(ImagePath,CatPathTarget)
+            [Cat] = runPipeSim(ImagePath,CatPathTarget)
             Set         = setParameterStruct(CatPathTarget);
         end
    

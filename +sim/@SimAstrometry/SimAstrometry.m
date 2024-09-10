@@ -5,8 +5,9 @@ classdef  SimAstrometry< MMS
     properties
         X; Y;
         NsrcIn = 100; NepochIn=1000;
+        mas2pix=400;
         CelestialCoo= [4.6273 -0.4646];
-        Flux=[]; Background=[]; 
+        ImageFileCell;
         Systematics;
         ParS; ParE; ParC;
         epsS; epsE; epsC;
@@ -16,14 +17,18 @@ classdef  SimAstrometry< MMS
         ImageFilePaths;
         FileNameFormat;
         Npix=300;
-        MuPM = [2,6]/400;
-        SigmaPM=1/400;
-        mas2pix=400;
+        MuPM = [2,6]/400; SigmaPM=1/400;
+        
         MuPlx = 1;
         Plx = true;
         AffineRotationRange = [-0.01,0.01]/180*pi;
         AffineTranslationRange = [-1,1]*1e-3;
-
+        %Photometry pars
+        MagRange    =[14,19]; Background=[10.^(-0.4*(20-25))]; MagStd=0.01;
+        %PSF par
+        PSFStampSize =15;
+        %Logistics
+        ImageTargetFolder ='/home/noamse/KMT/data/simulations/simulatedIM/';
         %       epsSTrack; epsETrack; epsCTrack;
         %       AsX; AsY;
         %       AeX; AeY;
@@ -77,8 +82,9 @@ end
         [ParS]      = initiateParS(SA,Args);
         [ParE]      = initiateParE(SA,Args);
         [X,Y]       = generateXY(SA,Args);
-
+        [Mag,Flux]= generatePhotometry(SA,Args)
         [PlxX,PlxY] = calculatePlxTerms(SA,Args);
+        [RefCat,RefTab] = generateRefCat(SA,Args);
     end
 
     methods

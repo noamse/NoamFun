@@ -12,7 +12,7 @@ end
 %Aey = SA.AeY;
 for Iepoch = 1:numel(SA.JD)
     Xt = SA.Data.X(Iepoch,:)';
-    Yt = SA.Data.X(Iepoch,:)';
+    Yt = SA.Data.Y(Iepoch,:)';
     ZEROS = zeros(size(Xt));
     ONES= ones(size(Xt));
     Aex = [Xt,Yt,ONES,ZEROS,ZEROS,ZEROS];

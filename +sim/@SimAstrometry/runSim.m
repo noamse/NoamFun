@@ -23,10 +23,14 @@ SA.PlxTerms = [PlxX,PlxY];
 SA.ParS = SA.initiateParS;
 SA.ParE = SA.initiateParE;
 [SA.Data.X,SA.Data.Y] = SA.generateXY;
+[SA.Data.MAG_PSF,SA.Data.FLUX_PSF] = SA.generatePhotometry;
+
 SA.applyParETran;
 
 
 
-SA.generateImages;
+SA.ImageFileCell = SA.generateImages;
+
+
 
 

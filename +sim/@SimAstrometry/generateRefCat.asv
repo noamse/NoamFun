@@ -1,0 +1,12 @@
+function [RefCat,RefTab] = generateRefCat(SA,Args)
+
+arguments
+    SA;
+    Args.A =1;
+end
+
+
+RefMag = SA.medianFieldSource({'MAG_PSF'});
+RefTab = [SA.ParS(1,:)',SA.ParS(2,:)',RefMag];
+RefCat = AstroCatalog({RefTab},'ColNames',{'X','Y',});
+%save([ImageTargetFolder,'RefCat.mat'],'RefCat');
