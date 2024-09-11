@@ -27,7 +27,8 @@ else
 end
 Xin = rand(1,AS.NsrcIn).*AS.Npix;%AS.medianFieldSource({'X'});
 Yin = rand(1,AS.NsrcIn).*AS.Npix;%AS.medianFieldSource({'Y'});
-
+[Yin,Indsort] = sort(Yin);
+Xin = Xin(Indsort);
 
 ParS([1,2],:)=[Xin;Yin];
 ParS([3,4],:) = PMin;

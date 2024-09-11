@@ -59,7 +59,7 @@ Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',IR.Set.FitRadius
     'UseSourceNoise',IR.Set.UseSourceNoise,'ReCalcBack',IR.Set.ReCalcBack);
 %Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',FitRadius,'NRefMagBin',IR.Set.NRefMagBin);
 %IR.populateMetaData(Cat,Im);
-Cat.JD = Im.julday;
+Cat.JD = Im.HeaderData.getVal('JD');
 saveOutputCat(IR,Cat)
 %ImagePath
 end
