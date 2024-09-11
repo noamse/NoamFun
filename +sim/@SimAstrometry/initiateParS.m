@@ -32,5 +32,7 @@ Xin = Xin(Indsort);
 
 ParS([1,2],:)=[Xin;Yin];
 ParS([3,4],:) = PMin;
-ParS(5,:) = reshape(Plxin,1,AS.NsrcIn);
+if AS.Plx
+    ParS(5,:) = reshape(Plxin,1,AS.NsrcIn);
+end
 end

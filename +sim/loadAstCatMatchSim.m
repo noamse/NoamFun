@@ -10,7 +10,7 @@ addpath('/home/noamse/astro/KMT_ML/code/func/')
 astcats  = read_astcats(TargetPath,'NamePattern','AstCat','CatFieldName','Cat');
 
 RefSt=load([TargetPath,'RefCat.mat']);
-RefSt.RefCat.sortrows('Y');
+%RefSt.RefCat.sortrows('Y');
 
 [MatchedCat,JD,~]  = msMatch.mainRun(astcats,'RefCat',RefSt.RefCat);
 Obj = MMS; 
@@ -19,7 +19,7 @@ Obj.JD = JD';
 %RefCat  = RefSt.RefCat.copy();
 %RefCat.
 Obj.mainRun(MatchedCat,'RefCat',RefSt.RefCat,'FitPlx',false,'AdditionalPMRefIteration',false,...
-    'fitProperMotionLogical',false,'fitAffineArgs',{'MaxRefMag',17},'UseRefCat',true);
+    'fitProperMotionLogical',false,'fitAffineArgs',{'MaxRefMag',20},'UseRefCat',false);
 [Matched]   = matchToRefCat(Obj,RefSt.RefCat,'MatchRadius',1);
 %Matched = RefSt.RefCat.copy();
 %C = Matched.getCol('V-I');
