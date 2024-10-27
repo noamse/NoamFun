@@ -3,6 +3,7 @@ arguments
     SA;
     Args.Plx=true;
     Args.JD = [];
+    Args.GenerateImages = false;
 end
 
 if isempty(SA.JD)
@@ -26,11 +27,11 @@ SA.ParE = SA.initiateParE;
 [SA.Data.MAG_PSF,SA.Data.FLUX_PSF] = SA.generatePhotometry;
 
 SA.applyParETran;
+SA.addAstrometricNoise
 
-
-
-SA.ImageFileCell = SA.generateImages;
-
+if Args.GenerateImages 
+    SA.ImageFileCell = SA.generateImages;
+end
 
 
 

@@ -19,8 +19,8 @@ Im = AstroImage(ImPath );
 Im.Image=single(Im.Image);
 Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadSources',true,'BackPar',...
     {'BackFun',@median,'BackFunPar',{[1 2]},'VarFun','@imUtil.background.rvar'});
-[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]});
-[Im] =imProc.sources.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
+%[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]});
+%[Im] =imProc.sources.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
 %[Im] =ml.pipe.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
 
 Isort = (sort(RefTab(:,Args.ColNumMagRefTab)));

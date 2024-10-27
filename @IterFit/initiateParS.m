@@ -7,9 +7,13 @@ end
 
 if IF.Plx
     ParS = zeros(5,IF.Nsrc);
+elseif IF.FakePlx 
+    ParS = zeros(8,IF.Nsrc);
 else
     ParS = zeros(4,IF.Nsrc);
 end
+
+
 Xguess = IF.medianFieldSource({'X'});
 Yguess = IF.medianFieldSource({'Y'});
 

@@ -10,7 +10,7 @@ arguments
     Args.ColNameMag = 'I';
     Args.UseSourceNoise = true;
     Args.ReCalcBack = false;
-    Args.RecenterPSF= false;
+    Args.RecenterPSF= true;
     Args.HalfSize   = 10;
     
 end

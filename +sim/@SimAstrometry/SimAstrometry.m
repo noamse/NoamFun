@@ -18,13 +18,13 @@ classdef  SimAstrometry< MMS
         FileNameFormat;
         Npix=300;
         MuPM = [2,6]/400; SigmaPM=1/400;
-        
+        NoiseAstSigma= 1e-2;
         MuPlx = 1;
         Plx = true;
         AffineRotationRange = [-0.01,0.01]/180*pi;
         AffineTranslationRange = [-1,1]*1e-3;
         %Photometry pars
-        MagRange    =[14,19]; Background=[10.^(-0.4*(20-25))]; MagStd=0.01;
+        MagRange    =[14,19]; Background=[10.^(-0.4*(21-25))]; MagStd=0.01;
         %PSF par
         PSFStampSize =15;
         %Logistics
@@ -94,6 +94,7 @@ end
 
     methods
         runSim(SA,Args)
+        addAstrometricNoise(SA,Args)
     end
 
 end

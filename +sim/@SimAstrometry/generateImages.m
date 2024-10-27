@@ -34,7 +34,7 @@ for Iepoch = 1:SA.Nepoch
     Image =Image  + poissrnd(SA.Background,size(Image,1),size(Image,2));
     % Inject sources
     
-    Image =Image+ imUtil.art.injectSources(Image,SrcCat,SrcPSF ,'RecenterPSF',false);
+    Image =Image+ imUtil.art.injectSources(Image,SrcCat,SrcPSF ,'RecenterPSF',true);
     Im.Image=Image;
     Header = {'JD',SA.JD(Iepoch),'';};
     Im.HeaderData.insertKey(Header);

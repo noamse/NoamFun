@@ -12,12 +12,12 @@ try
     G(isnan(R)) = 0;
     % Check for outliers in each row (source)
     %G(isoutlier(Rx,1)|isoutlier(Ry,1))=0;
-    OutLiers = isoutlier(Rx,'movmedian',10,"ThresholdFactor",1.5,'SamplePoints',IF.JD) ...
-        | isoutlier(Ry,'movmedian',10,"ThresholdFactor",1.5,'SamplePoints',IF.JD)...
-        | isoutlier(IF.Data.MAG_PSF,'movmedian',10,"ThresholdFactor",1.5,'SamplePoints',IF.JD);
+    OutLiers = isoutlier(Rx,'movmedian',50,"ThresholdFactor",1.5,'SamplePoints',IF.JD) ...
+        | isoutlier(Ry,'movmedian',50,"ThresholdFactor",1.5,'SamplePoints',IF.JD)...
+        | isoutlier(IF.Data.MAG_PSF,'movmedian',100,"ThresholdFactor",2,'SamplePoints',IF.JD);
     G(OutLiers )=0;
-    Rx(logical(G)) = nan;
-    Ry(logical(G)) = nan;
+    Rx(~logical(G)) = nan;
+    Ry(~logical(G)) = nan;
     NumNansEpoch = sum(isnan(sqrt(Rx.^2 + Ry.^2)),2);
     %MedNans = mean(NumNansEpoch);
     R = sqrt(Rx.^2+Ry.^2);
@@ -28,12 +28,14 @@ try
     [~,~,bin] = histcounts(M,[B(:,5);B(end,6)]);
     %[~,~,binMat] = histcounts(,[B(:,5);B(end,6)]);
     for Ibin = 1:numel(unique(bin))
-        Sigmase(:,bin==Ibin)= median(abs(R(:,bin==Ibin)),2,'omitnan').*ones(1,sum(bin==Ibin));
-
+        %Sigmase(:,bin==Ibin)= median(abs(R(:,bin==Ibin)),2,'omitnan').*ones(1,sum(bin==Ibin));
+        Sigmase(:,bin==Ibin)= mean(abs(R(:,bin==Ibin)),2,'omitnan').*ones(1,sum(bin==Ibin));
+        
 
     end
     Wes = 1./Sigmase.^2;
-    Wes(isnan(Wes))=0;
+    Wes(isnan(Wes)|isnan(R))=0;
+    
     Wes = Wes./sum(Wes(:));
     %Wes(FlagOut)=0;
 catch

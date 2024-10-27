@@ -5,9 +5,10 @@ classdef  IterFit< MMS
     
     properties
        Rx; Ry;
-       ParS; ParE; ParC;ParHalat;
-       epsS; epsE; epsC; epsHalat;
-       epsSTrack; epsETrack; epsCTrack; epsHalatTrack;
+       ParS; ParE; ParC;ParHalat;ParPix; 
+       epsS; epsE; epsC; epsHalat;epsPix
+       epsSTrack; epsETrack; epsCTrack; epsHalatTrack;epsPixTrack;
+       
        AsX; AsY;
        AeX; AeY;
        bs; be; 
@@ -17,14 +18,15 @@ classdef  IterFit< MMS
        Wes;
        PlxTerms;
        Chromatic = false; Chrom2D= false;
-       HALat = false;
-       Plx = true;
+       HALat = false; PixPhase=false;
+       Plx = true; FakePlx=false;
        UseWeights = true;
        CelestialCoo =  [4.6273,-0.4646];
        newWeights =false;
        AffSecondOrder = false;
        ChromaicHighOrder = true;
-       
+       CBinWidth = 0.5;
+       FlagSourcesPix= [];
     end
     
     
@@ -47,11 +49,11 @@ classdef  IterFit< MMS
     methods
         % getters and setters
         function Asx = get.AsX(IF)
-            [Asx,~]   = generateSourceDesignMat(IF,'Plx',IF.Plx);
+            [Asx,~]   = generateSourceDesignMat(IF,'Plx',IF.Plx,'FakePlx',IF.FakePlx);
         end
         
         function Asy = get.AsY(IF)
-            [~,Asy]   = generateSourceDesignMat(IF,'Plx',IF.Plx);
+            [~,Asy]   = generateSourceDesignMat(IF,'Plx',IF.Plx,'FakePlx',IF.FakePlx);
         end
 
         function Aex = get.AeX(IF)
@@ -110,6 +112,13 @@ classdef  IterFit< MMS
         [Nhalat]  = calculateNhalat(IF,Args);
         [Bhalat]  = calculateBhalat(IF,Args);
 
+        [ParHalat]      = initiateParHalatBins(IF,Args);       
+        [AhalatX,AhalatY]   = generateHALatDesignMatBins(IF,Args);
+        [Nhalat]  = calculateNhalatBins(IF,Args);
+        [Bhalat]  = calculateBhalatBins(IF,Args);
+        [NC,edgesC,binC] = generateBins(C,Args);
+
+
         [ParPix]      = initiateParPix(IF,Args);       
         [ApixX,ApixY]   = generatePixDesignMat(IF,Args);
         [Npix]  = calculateNpix(IF,Args);
@@ -121,6 +130,8 @@ classdef  IterFit< MMS
         updateParE(IF);
         updateParC(IF);
         updateParHalat(IF);
+        updateParPix(IF);
+        updateParHalatBins(IF);
         runIter(IF);
         startupIF(IF)
 
@@ -130,7 +141,7 @@ classdef  IterFit< MMS
     
     methods
         [Bx,By] =plotSource(IF,IndSrc)
-        [RStdPrcX,RStdPrcY,M] = plotResRMS(IF,Args)
+        [RStdPrcX,RStdPrcY,M,RStdPrc] = plotResRMS(IF,Args)
         [Chi2X,Chi2Y,NbinX,NbinY]= chi2Tests(IF,Args)
     end
 end

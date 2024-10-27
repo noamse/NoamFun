@@ -50,9 +50,18 @@ if IF.Chromatic
 else
     if IF.HALat
         [AhalatX,AhalatY] = generateHALatDesignMat(IF);
-        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' - AhalatX*IF.ParHalat;
-        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' - AhalatY*IF.ParHalat;
+        if IF.PixPhase
+            [ApixX,ApixY] = generatePixDesignMat(IF);
+            PixCorrX = reshape(ApixX*IF.ParPix,IF.Nepoch,IF.Nsrc);
+            PixCorrY = reshape(ApixY*IF.ParPix,IF.Nepoch,IF.Nsrc);
+        else
+            PixCorrX= zeros(IF.Nepoch,IF.Nsrc);
+            PixCorrY= zeros(IF.Nepoch,IF.Nsrc);
+        end
+        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' - AhalatX*IF.ParHalat- PixCorrX ;
+        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' - AhalatY*IF.ParHalat- PixCorrY;
     else
+        
         Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' ;
         Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' ;
     end

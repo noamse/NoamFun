@@ -1,4 +1,4 @@
-function [RStdPrcX,RStdPrcY,M] = plotResRMS(IF,Args)
+function [RStdPrcX,RStdPrcY,M,RstdPrc ] = plotResRMS(IF,Args)
 
 arguments
     IF;
@@ -14,7 +14,7 @@ end
 % FlagW = ones(size(Wes));%Wes>0.8;
 % FlagOut = ~(isoutlier(Rx,1) | isoutlier(Ry,1)| isoutlier(sqrt(Ry.^2 + Rx.^2),1));
 % Flag = logical(FlagOut.*FlagW);
-% Flag =FlagOut;
+% Flag =FlagOut;g
 % Rx(~Flag)=nan;
 % Ry(~Flag)=nan;
 % RStdPrcX= rms(Rx,'omitnan')'*400;
@@ -43,7 +43,8 @@ end
 
 if Args.Plot2D 
     figure;
-    semilogy(M,sqrt(RStdPrcY.^2 +RStdPrcX.^2) ,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    RstdPrc = sqrt(RStdPrcY.^2 +RStdPrcX.^2);
+    semilogy(M,RstdPrc  ,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
     xlabel('I')
     ylabel('rms(R) [mas]')
     title(Args.title)

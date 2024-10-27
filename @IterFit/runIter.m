@@ -41,12 +41,23 @@ if IF.HALat
 %
 %     IF.epsCTrack{end+1} = IF.ParC;
 %     updateParC(IF);
-      [Nhalat]    = calculateNhalat(IF);
-      [Bhalat]    = calculateBhalat(IF);
+      % [Nhalat]    = calculateNhalat(IF);
+      % [Bhalat]    = calculateBhalat(IF);
+      % [IF.epsHalat,~]= bicg(Nhalat,Bhalat,1e-7);
+      % updateParHalat(IF);
+      % IF.epsHalatTrack{end+1} = IF.ParC;
+      [Nhalat]    = calculateNhalatBins(IF);
+      [Bhalat]    = calculateBhalatBins(IF);
       [IF.epsHalat,~]= bicg(Nhalat,Bhalat,1e-7);
-      updateParHalat(IF);
-      IF.epsHalatTrack{end+1} = IF.ParC;
+      updateParHalatBins(IF);
 end
+
+
+if IF.PixPhase
+      [Npix]    = calculateNpix(IF);
+      [Bpix]    = calculateBpix(IF);
+      [IF.epsPix,~]= bicg(Npix,Bpix,1e-8);
+      updateParPix(IF);
 
 
 end
