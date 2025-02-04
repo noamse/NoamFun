@@ -1,4 +1,8 @@
-function Wes = calculateWes(IF)
+function Wes = calculateWes(IF,Args)
+arguments
+    IF;
+    Args.NormalizeWeights= true;
+end
 [Rx,Ry]     = calculateResiduals(IF);
 R = sqrt(Rx.^2 + Ry.^2);
 if ~IF.UseWeights
@@ -33,10 +37,12 @@ try
         
 
     end
+    Sigmase(Sigmase<IF.minUncerntainty) = IF.minUncerntainty;
     Wes = 1./Sigmase.^2;
     Wes(isnan(Wes)|isnan(R))=0;
-    
-    Wes = Wes./sum(Wes(:));
+    if Args.NormalizeWeights
+        Wes = Wes./sum(Wes(:));
+    end
     %Wes(FlagOut)=0;
 catch
 

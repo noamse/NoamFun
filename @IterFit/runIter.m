@@ -23,12 +23,13 @@ end
 updateParE(IF);
 IF.epsETrack{end+1} = IF.ParE;
 
+
+
 [Nss]       = calculateNss(IF);
 [bs]        = calculateBs(IF);
 [IF.epsS,~] = bicg(Nss,bs,1e-8);
 updateParS(IF);
 IF.epsSTrack{end+1} = IF.ParS;
-
 
 
 
@@ -52,12 +53,18 @@ if IF.HALat
       updateParHalatBins(IF);
 end
 
-
-if IF.PixPhase
-      [Npix]    = calculateNpix(IF);
-      [Bpix]    = calculateBpix(IF);
-      [IF.epsPix,~]= bicg(Npix,Bpix,1e-8);
-      updateParPix(IF);
-
-
-end
+% if IF.AnnualEffect
+%     [Naa]       = calculateNaa(IF);
+%     [ba]        = calculateBa(IF);
+%     [IF.epsA,~] = bicg(Naa,ba,1e-8);
+%     updateParAnnual(IF);
+%     IF.epsATrack{end+1} = IF.ParA;
+% end
+% if IF.PixPhase
+%       [Npix]    = calculateNpix(IF);
+%       [Bpix]    = calculateBpix(IF);
+%       [IF.epsPix,~]= bicg(Npix,Bpix,1e-8);
+%       updateParPix(IF);
+% 
+% 
+% end

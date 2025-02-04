@@ -23,7 +23,7 @@ cosPA= cos(pa);
 if IF.ChromaicHighOrder
     Hlinear = [ones(size(sinPA)),sinPA.*secz,cosPA.*secz];%,sin(alt),cos(alt)];
     %Hquad = [sinPA.^2,cosPA.^2,sinPA.^3,cosPA.^3,sinPA.^4,cosPA.^4].*secz;
-    Hquad = [sinPA.^2,cosPA.^2,sinPA.^3,cosPA.^3,sinPA.^4,cosPA.^4].*secz;
+    Hquad = [(secz.*sinPA).^2,(secz.*cosPA).^2,(secz.*sinPA).^3,(secz.*cosPA).^3,(secz.*sinPA).^4,(secz.*cosPA).^4];
     H = [Hlinear,Hquad];
 else
     Hlinear = [ones(size(sinPA)),sinPA.*secz,cosPA.*secz];%,sin(alt),cos(alt)];

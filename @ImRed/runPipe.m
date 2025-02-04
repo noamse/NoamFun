@@ -59,6 +59,8 @@ Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',IR.Set.FitRadius
     'UseSourceNoise',IR.Set.UseSourceNoise,'ReCalcBack',IR.Set.ReCalcBack);
 %Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',FitRadius,'NRefMagBin',IR.Set.NRefMagBin);
 IR.populateMetaData(Cat,Im);
-saveOutputCat(IR,Cat)
+if IR.Set.SaveFile
+    saveOutputCat(IR,Cat)
+end
 %ImagePath
 end

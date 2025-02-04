@@ -50,20 +50,30 @@ if IF.Chromatic
 else
     if IF.HALat
         [AhalatX,AhalatY] = generateHALatDesignMat(IF);
-        if IF.PixPhase
-            [ApixX,ApixY] = generatePixDesignMat(IF);
-            PixCorrX = reshape(ApixX*IF.ParPix,IF.Nepoch,IF.Nsrc);
-            PixCorrY = reshape(ApixY*IF.ParPix,IF.Nepoch,IF.Nsrc);
-        else
-            PixCorrX= zeros(IF.Nepoch,IF.Nsrc);
-            PixCorrY= zeros(IF.Nepoch,IF.Nsrc);
-        end
-        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' - AhalatX*IF.ParHalat- PixCorrX ;
-        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' - AhalatY*IF.ParHalat- PixCorrY;
+        HalatCorrX = AhalatX*IF.ParHalat;
+        HalatCorrY = AhalatY*IF.ParHalat;
     else
-        
-        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' ;
-        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' ;
+        HalatCorrX = zeros(IF.Nepoch,IF.Nsrc);
+        HalatCorrY = zeros(IF.Nepoch,IF.Nsrc);
+    end
+    
+    if IF.AnnualEffect
+        [AaX,AaY] = generateAnnualDesignMat(IF);
+        AnnualCorrX = AaX*IF.ParA;
+        AnnualCorrY = AaY*IF.ParA;
+        %PixCorrX = reshape(ApixX*IF.ParPix,IF.Nepoch,IF.Nsrc);
+        %PixCorrY = reshape(ApixY*IF.ParPix,IF.Nepoch,IF.Nsrc);
+
+    else
+        AnnualCorrX= zeros(IF.Nepoch,IF.Nsrc);
+        AnnualCorrY= zeros(IF.Nepoch,IF.Nsrc);
+    end
+
+        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' - HalatCorrX -AnnualCorrX ;
+        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' - HalatCorrY -AnnualCorrY;
+
+%        Rx = IF.Data.X - Asx*IF.ParS -(Aex*IF.ParE)' ;
+%        Ry = IF.Data.Y - Asy*IF.ParS -(Aey*IF.ParE)' ;
     end
 end
 

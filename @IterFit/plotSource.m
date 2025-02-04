@@ -26,32 +26,28 @@ figure;
 
 
 
-%ModelX = IF.AsX * IF.ParS(:,SourceInd);
-%ModelY = IF.AsY * IF.ParS(:,SourceInd);
-ModelX = IF.AsX * IF.ParS;
-ModelY = IF.AsY * IF.ParS;
- if IF.Chromatic
-     pa = IF.getTimeSeriesField(1,{'pa'});
-     secz= IF.getTimeSeriesField(1,{'pa'});
-     [Acx,Acy]   = generateChromDesignMat(IF);
-     ParC=IF.ParC;
-     if IF.Chrom2D
-        ParC(1,:) = ParC(1,:).*sin(pa').*secz';
-        ParC(2,:) = ParC(2,:).*cos(pa').*secz';
-        ParC(isnan(ParC))=0;
-        ModelX = ModelX + (Acx * ParC)';
-        ModelY = ModelY + (Acy * ParC)';
-     else
-        %ParCx = ParC.*sin(pa').*secz';
-        %ParCy = ParC.*cos(pa').*secz';
-        ParCx = ParC.*sin(pa');
-        ParCy = ParC.*cos(pa');
-        ParCx (isnan(ParCx ))=0;
-        ParCy (isnan(ParCy ))=0;
-        ModelX = ModelX + (Acx * ParCx)';
-        ModelY = ModelY + (Acy * ParCy)';
-     end
- end
+if IF.HALat
+    [AhalatX,AhalatY] = generateHALatDesignMat(IF);
+    HalatCorrX = AhalatX*IF.ParHalat;
+    HalatCorrY = AhalatY*IF.ParHalat;
+else
+    HalatCorrX = zeros(IF.Nepoch,IF.Nsrc);
+    HalatCorrY = zeros(IF.Nepoch,IF.Nsrc);
+end
+
+if IF.AnnualEffect
+    [AaX,AaY] = generateAnnualDesignMat(IF);
+    AnnualCorrX = AaX*IF.ParA;
+    AnnualCorrY = AaY*IF.ParA;
+else
+    AnnualCorrX= zeros(IF.Nepoch,IF.Nsrc);
+    AnnualCorrY= zeros(IF.Nepoch,IF.Nsrc);
+end
+
+        
+        
+ModelX = IF.AsX * IF.ParS+ HalatCorrX +AnnualCorrX ;
+ModelY = IF.AsY * IF.ParS+ HalatCorrY +AnnualCorrY;
 ModelX = ModelX(:,SourceInd);
 ModelY = ModelY(:,SourceInd);
 AffineX = (IF.AeX * IF.ParE)';
@@ -81,7 +77,7 @@ if Args.PlotMag
     xlabel('JD','interpreter','latex');
     linkaxes([ax1,ax2,ax3],'x');
 else
-    
+
     ax1= subplot(2,1,1);
     plot(IF.JD-2450000,TS(:,1)+AffineX,'.','Color',Args.Color);
     hold on;
@@ -121,7 +117,7 @@ if Args.PlotMag
     ylabel('I','interpreter','latex')
     xlabel('JD','interpreter','latex');
     set(gca,'YDir','reverse')
-    
+
     ax2 = subplot(3,1,2);
     Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Xtag(~Out) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
     Bx(Bx(:,3)==0,3) = Inf;
@@ -136,9 +132,9 @@ if Args.PlotMag
     errorbar(BmodelX(FlagX ,1),BmodelX(FlagX ,2),BmodelX(FlagX ,3)./sqrt(BmodelX(FlagX,4)),'.');
     ylabel('X [pix]','interpreter','latex')
     xlabel('JD','interpreter','latex');
-    
+
     ax3 = subplot(3,1,3);
-    
+
     By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ytag(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
     By(By(:,3)==0,3) = Inf;
     FlagY = ~(By(:,2)==0 | isnan(By(:,2))| By(:,4)<2);
@@ -150,12 +146,50 @@ if Args.PlotMag
     BmodelY = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, ModelY(~Out) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
     BmodelY(BmodelY(:,3)==0,3) = Inf;
     errorbar(BmodelY(FlagY ,1),BmodelY(FlagY ,2),BmodelX(FlagY ,3)./sqrt(BmodelY(FlagY,4)),'.');
-    
+
     ylabel('Y [pix]','interpreter','latex')
     xlabel('JD','interpreter','latex');
-    
+
     linkaxes([ax1,ax2,ax3],'x');
-    
+
+
+
+    figure;
+
+    ax3 = subplot(3,1,1);
+    scatter(IF.JD(~Out)-2450000,TS(~Out,3),5,'o','filled','MarkerFaceAlpha',.4,'MarkerEdgeAlpha',.4);
+    ylabel('I [mag]','interpreter','latex')
+    set(gca,'YDir','reverse')
+
+
+    [Rx,Ry] =IF.calculateResiduals;
+    Rx = Rx(:,SourceInd)*400;
+    Ry = Ry(:,SourceInd)*400;
+    ax1 = subplot(3,1,2);
+    OutX = isoutlier(Rx,1);
+    Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Rx(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+    Bx(Bx(:,3)==0,3) = Inf; FlagX = ~(Bx(:,2)==0 | isnan(Bx(:,2)) | Bx(:,4)<2);
+    scatter(IF.JD-2450000,Rx,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    ylabel('Residuals X [mas]','Interpreter','latex');%xlabel('JD - 2450000 [days]','Interpreter','latex')
+    hold on;
+
+    errorbar(Bx(FlagX ,1),Bx(FlagX ,2),Bx(FlagX ,3)./sqrt(Bx(FlagX,4)),'.');
+    ylim([-50,50])
+
+    ax2 = subplot(3,1,3);
+    OutY = isoutlier(Ry,2);
+    By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ry(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
+    By(By(:,3)==0,3) = Inf; FlagY = ~(By(:,2)==0 | isnan(By(:,2)) | By(:,4)<2);
+    scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    ylabel('Residuals Y [mas]','Interpreter','latex');xlabel('JD - 2450000 [days]','Interpreter','latex')
+    hold on;
+    ylim([-50,50])
+    errorbar(By(FlagY ,1),By(FlagY ,2),By(FlagY ,3)./sqrt(By(FlagY,4)),'.');
+    linkaxes([ax1,ax2,ax3],'x');
+
+
+
+
 else
     ax1 = subplot(2,1,1);
     Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Xtag(~Out) ], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
@@ -171,7 +205,7 @@ else
     errorbar(BmodelX(FlagX ,1),BmodelX(FlagX ,2),BmodelX(FlagX ,3)./sqrt(BmodelX(FlagX,4)),'.');
     ylabel('X [pix]','interpreter','latex')
     xlabel('JD','interpreter','latex');
-    
+
     ax2 = subplot(2,1,2);
     By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ytag(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
     By(By(:,3)==0,3) = Inf;
@@ -188,38 +222,40 @@ else
     xlabel('JD','interpreter','latex');
 
     linkaxes([ax1,ax2],'x');
-end
-%Plot residuals
-figure;
 
-ax3 = subplot(3,1,1);
-scatter(IF.JD(~Out)-2450000,TS(~Out,3),5,'o','filled','MarkerFaceAlpha',.4,'MarkerEdgeAlpha',.4); 
-ylabel('I [mag]','interpreter','latex')
-set(gca,'YDir','reverse')
+
+
+
+figure;
 
 
 [Rx,Ry] =IF.calculateResiduals;
 Rx = Rx(:,SourceInd)*400;
 Ry = Ry(:,SourceInd)*400;
-ax1 = subplot(3,1,2);
+ax1 = subplot(2,1,1);
 OutX = isoutlier(Rx,1);
 Bx = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Rx(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 Bx(Bx(:,3)==0,3) = Inf; FlagX = ~(Bx(:,2)==0 | isnan(Bx(:,2)) | Bx(:,4)<2);
-scatter(IF.JD-2450000,Rx,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2); 
+scatter(IF.JD-2450000,Rx,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
 ylabel('Residuals X [mas]','Interpreter','latex');%xlabel('JD - 2450000 [days]','Interpreter','latex')
 hold on;
 
 errorbar(Bx(FlagX ,1),Bx(FlagX ,2),Bx(FlagX ,3)./sqrt(Bx(FlagX,4)),'.');
 ylim([-50,50])
 
-ax2 = subplot(3,1,3);
+ax2 = subplot(2,1,2);
 OutY = isoutlier(Ry,2);
 By = timeSeries.bin.binningFast([IF.JD(~Out)-2450000, Ry(~Out)], Args.TimeBinSize,[NaN NaN],{'MidBin', @nanmean, @tools.math.stat.rstd,@numel});
 By(By(:,3)==0,3) = Inf; FlagY = ~(By(:,2)==0 | isnan(By(:,2)) | By(:,4)<2);
-scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2); 
+scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
 ylabel('Residuals Y [mas]','Interpreter','latex');xlabel('JD - 2450000 [days]','Interpreter','latex')
 hold on;
 ylim([-50,50])
 errorbar(By(FlagY ,1),By(FlagY ,2),By(FlagY ,3)./sqrt(By(FlagY,4)),'.');
-linkaxes([ax1,ax2,ax3],'x');
+linkaxes([ax1,ax2],'x');
+
+
+end
+%Plot residuals
+
 

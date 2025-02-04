@@ -5,10 +5,10 @@ arguments
     Im;
     Args.RefColNameMag= 'I';
     Args.MaxRefMagPattern = 17.5;
-    Args.MatchRadius = 3;
+    Args.MatchRadius = 5;
     Args.AffineScale = [0.8,1.2];
     Args.PatternRange = [-100,100];
-    Args.MatchRadiusPattern = 1;
+    Args.MatchRadiusPattern = 2;
     Args.PatternStep = 0.05;
 end
 RefCat = self.RefCatalog.copy();

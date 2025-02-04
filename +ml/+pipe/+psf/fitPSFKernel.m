@@ -198,7 +198,7 @@ function V = mtd_func_min(x,PSF,StampSize, fit_region_flag,w)
     
 
     K = ml.pipe.psf.model.mtd(x,'StampSize',StampSize);
-    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2./w(fit_region_flag),'all');
+    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2.*w(fit_region_flag),'all');
 
 end
 

@@ -13,7 +13,7 @@ arguments
     Args.Scale                   = 1.0; % scale or [min max] range that require to ?
     Args.HistDistEdgesRotScale   = [10 600 300];
     Args.HistDistEdgesRot        = (12:3:100).';
-    Args.HistRotEdges            = (-5:1:5);  % rotation or [min max] rotation that require to ?
+    Args.HistRotEdges            = (-1:0.5:1);  % rotation or [min max] rotation that require to ?
     Args.RangeX                  = [-16 16];
     Args.RangeY                  = [-16 16];
     Args.StepX                   = 0.2;

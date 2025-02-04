@@ -7,7 +7,7 @@ arguments
     Args.Weights= [];
     Args.ColNameX= 'X';
     Args.ColNameY= 'Y';
-    Args.PrctileRange = [10,90];
+    Args.PrctileRange = [15,85];
     Args.MaxRefMag = [];
     Args.ColNameRefMag = 'RefMag';
     %               Args.OnlyMagRange=false;
