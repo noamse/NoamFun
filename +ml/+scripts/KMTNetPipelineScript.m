@@ -60,37 +60,3 @@ Matched.Catalog = Matched.Catalog(FlagNan,:);
 [IFobj,MMSobj]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
 
 
-%%
-close all;
-%FLUX = IFobj.medianFieldSource({'FLUX_PSF'})
-%H = [ones(size(FLUX)),-2.5*log10(FLUX)];
-M = IFobj.medianFieldSource({'MAG_PSF'});
-%zpfit = H\M;
-%zp= zpfit(1);
-
-zp =28.469;
-FluxRef = 10.^(0.4*(zp - RefCat.getCol('I')));
-FluxMatch= 10.^(0.4*(zp - Matched.getCol('I')));
-DistanceMatchedRef = pdist2(RefCat.getCol({'X','Y'}),Matched.getCol({'X','Y'}));
-DistanceMatchedRef(DistanceMatchedRef==0)=Inf;
-FluxDist = (FluxRef./FluxMatch')./DistanceMatchedRef.^2;
-
-%FlagMagPlot = M<18.5;
-% [RstdX,RstdY,M] = IFobj.plotResRMS;
-[RstdX,RstdY] = IFobj.calculateRstd;
- Rstd  = sqrt(RstdX.^2 +RstdY.^2);
-scatter(M,
-,3000./(min(DistanceMatchedRef)),log10(max(FluxDist)),'.')
-set(gca,'ylim',[8,100]);
-set(gca,'yscale','log');
-yticks([10,20,50])
-xticks([14,15,16,17,18,19])
-
-ylabel('rms(Residuals) (2D) [mas]','Interpreter','latex')
-xlabel('I [mag]','Interpreter','latex');
-cb = colorbar;
-caxis([min(log10(max(FluxDist))),prctile(log10(max(FluxDist)),80)]);
-ylabel(cb,'$log(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
-
-
-colormap('turbo');
