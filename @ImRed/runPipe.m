@@ -22,16 +22,10 @@ catch
     return
 end
 
-IR.RefCatalog  = adjustRefCat(IR,Im); % tbd
+IR.RefCatalog  = adjustRefCat(IR,Im); %
 if Im.HeaderData.isKeyExist('EQUINOX')
     Im.HeaderData.replaceVal({'EQUINOX'},{2000});
 end
-% if IR.RefCatalog.isemptyCatalog
-%     Cat=AstroCatalog;
-%     IR.populateMetaData(Cat,Im);
-%     saveOutputCat(IR,Cat);
-%     return;
-% end
 
 try
 
