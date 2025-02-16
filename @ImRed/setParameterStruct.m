@@ -24,9 +24,11 @@ arguments
     Args.FitRadiusKernel = 5;
     
     Args.Band=  'I';
-    Args.Dmin_thresh = 3; Args.DistFromBound = 10;
+    % Generate catalog pars
+    Args.Dmin_thresh = 3; Args.DistFromBound = 10; 
     Args.SettingFileName = 'master.txt';
-    Args.MaxRefMagPattern = 17;
+    Args.MaxRefMagPattern = 17.5;
+
     Args.ReCalcBack = true;
     %Args.max_I = 18.3;
     %Args.mexCutout=true;

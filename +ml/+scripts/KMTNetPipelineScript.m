@@ -1,8 +1,11 @@
 
-
 EventNum = num2str(192630);
+%EventNum = num2str(160949);
+%EventNum = num2str(161569);
+%EventNum = num2str(160023);
 % Directory to save the catalogs. 
-TargetPath = ['/home/noamse/KMT/data/AstCats/test/jan25b/kmt',EventNum, '/'];
+%TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25b/kmt',EventNum, '/'];
+TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
 mkdir(TargetPath);
 
 %% Read 'CTIO_I' image files from all years 
@@ -15,8 +18,9 @@ DirCell = DirCell(~refflag);
 %% Generate a struct that contain all of the pipeline options
 CCDSEC = [106,406,106,406];
 Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',CCDSEC(1),'CCDSEC_xu',CCDSEC(2),'CCDSEC_yd',CCDSEC(3),'CCDSEC_yu',CCDSEC(4),...
-    'MaxRefMag',19,'FitRadius',3,'NRefMagBin',12,'FitWings',false,'HalfSize',12,...
-    'SNRforPSFConstruct',70,'InerRadiusKernel',0,'FitRadiusKernel',4,'ReCalcBack',false);
+    'MaxRefMag',18.5,'FitRadius',3.5,'NRefMagBin',12,'FitWings',true,'HalfSize',12,...
+    'SNRforPSFConstruct',70,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',3,'MaxRefMagPattern',17,...
+    'fitPSFKernelModel','mtd');
 Set.SaveFile = true;
 % Generate KMTNet reference catalog for the specific field and cutouts
 % The options file and the catalog will be written in TargetPath.
@@ -39,10 +43,11 @@ Set.SaveFile = true;
 [Obj,CelestialCoo,Matched]= ml.util.loadAstCatMatch(TargetPath);
 % Remove bad airmass and false fit
 FlagSeczAM = Obj.Data.secz(:,1)<1.6 ;
-%flagMag = Matched.getCol('I')<17.5;
-Obj.Data=ml.util.flag_struct_field(Obj.Data,FlagSeczAM,'FlagByCol',false);
+%flagMag = Obj.medianFieldSource({'MAG_PSF'})<17.5;
 %Obj.Data=ml.util.flag_struct_field(Obj.Data,flagMag,'FlagByCol',true);
 %Matched.Catalog = Matched.Catalog(flagMag,:); 
+Obj.Data=ml.util.flag_struct_field(Obj.Data,FlagSeczAM,'FlagByCol',false);
+
 Obj.JD = Obj.JD(FlagSeczAM);
 FlagPix = Obj.Data.Yphase==-0.5|Obj.Data.Xphase==-0.5;
 Obj.Data.X(FlagPix) = nan; Obj.Data.Y(FlagPix) = nan;
@@ -58,5 +63,6 @@ ObjSys.Data = ml.util.flag_struct_field(ObjSys.Data,FlagNan  ,'FlagByCol',true);
 Matched.Catalog = Matched.Catalog(FlagNan,:);
 %% Run iterative solution for 
 [IFobj,MMSobj]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
+[IFobjPlx,MMSobjPlx]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
 
 

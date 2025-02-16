@@ -80,11 +80,11 @@ end
 if Args.Plx
     IF.Plx = true;
     IF.ParS = IF.initiateParS;
+
 end
 for I =1:Args.NiterWeights
     IF.runIterBasic;
 end
-
 
 
 if Args.updateObj 

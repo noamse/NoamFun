@@ -41,6 +41,7 @@ AffineMat= Obj.fitAffine(RefCoo,Args.fitAffineArgs{:});
 Obj.applyAffineTran(AffineMat);
 ZP = Obj.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag',Args.fitRefZPArgs{:});
 Obj.applyZP(ZP,'ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
+Obj.ZP = ZP;
 if Args.RemovePhotometricOutliers
     [Out]  = photometryOutliers(Obj,Args.photometryOutliersArgs{:});
     Obj.applySourceFlag(~Out);

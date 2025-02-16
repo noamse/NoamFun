@@ -19,8 +19,9 @@ Obj.JD = JD';
 %RefCat  = RefSt.RefCat.copy();
 %RefCat.
 Obj.mainRun(MatchedCat,'RefCat',RefSt.RefCat,'FitPlx',false,'AdditionalPMRefIteration',false,...
-    'fitProperMotionLogical',false,'fitAffineArgs',{'MaxRefMag',17},'UseRefCat',false);
+    'fitProperMotionLogical',false,'fitAffineArgs',{'MaxRefMag',17},'UseRefCat',false,'fitRefZPArgs',{'ZPFun',@median});
 [Matched]   = matchToRefCat(Obj,RefSt.RefCat,'MatchRadius',2);
+
 %Matched = RefSt.RefCat.copy();
 C = Matched.getCol('V-I');
 RefMag = Matched.getCol('I');

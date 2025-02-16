@@ -8,8 +8,8 @@ IR.RefCatalog  = loadRefCat(IR);
 HalfSize = IR.Set.HalfSize;
 try
     
-    Im      = constructPSF(IR,Im,'HalfSize',HalfSize,'findMeasureSourcesArgs',{'Threshold',10,'PsfFunPar',{[0.5; 1.0; 1;]},...
-       'RemoveBadSources',true,'ReCalcBack',true,'BackPar',{'BackFunPar',{'MinVal',600},'VarFun',@imUtil.background.rvar}}); % Need to add the selectPsfStars parameters to Set
+    Im      = constructPSF(IR,Im,'HalfSize',HalfSize,'findMeasureSourcesArgs',{'Threshold',10,'PsfFunPar',{[0.5;1.0;1.5;2;2.5;3]},...
+       'RemoveBadSources',true,'ReCalcBack',true,'BackPar',{'BackFunPar',{'all','omitnan'},'VarFun',@imUtil.background.rvar,'BackFun',@median}}); % Need to add the selectPsfStars parameters to Set
 
     if isempty(Im.PSF)
         error('Empty PSF/Catalog');
@@ -30,7 +30,7 @@ end
 try
 
 RefCat = IR.RefCatalog.copy();
-Im = imProc.sources.findMeasureSources(Im.copy(),'OnlyForced',true,'ForcedList',RefCat.getCol({'X','Y'}));
+Im = imProc.sources.findMeasureSources(Im.copy(),'OnlyForced',true,'ForcedList',RefCat.getCol({'X','Y'}),'ReCalcBack',false);
 [Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]...
     ,'CubeSumRange',[0.8 4],'SmoothWings',false,...
     'psf_zeroConvergeArgs',{'Radius',IR.Set.HalfSize}},'HalfSize',IR.Set.HalfSize...

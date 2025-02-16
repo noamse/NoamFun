@@ -18,7 +18,7 @@ RefTab = ml.kmt.read_kmt9k_cat(ImPath,'MaxMag',Set.MaxRefMag,'HistoryKey',Args.H
 Im = AstroImage(ImPath );
 Im.Image=single(Im.Image);
 Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadSources',true,'BackPar',...
-    {'BackFun',@median,'BackFunPar',{[1 2]},'VarFun','@imUtil.background.rvar'});
+    {'BackFun',@median,'BackFunPar',{'all','omitnan'},'VarFun','@imUtil.background.rvar'});
 %[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]});
 %[Im] =imProc.sources.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
 %[Im] =ml.pipe.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});

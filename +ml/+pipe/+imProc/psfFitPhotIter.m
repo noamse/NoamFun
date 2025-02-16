@@ -67,7 +67,7 @@ for Ibin = 1:numel(N)
     SrcCat = Im.CatData.getCol({'X','Y','FLUX_PSF'});
     
     flagnan = ~any(isnan(SrcCat),2);
-    S = imUtil.art.injectSources(Im.sizeImage,SrcCat(flagnan,:),PSF,'RecenterPSF',Args.RecenterPSF);
+    S = image.injectSources(Im.sizeImage,SrcCat(flagnan,:),PSF,'RecenterPSF',Args.RecenterPSF);
     Im.Image = Im.Image- S;
     Cat(Ibin)= Im.astroImage2AstroCatalog;
     Res(Ibin)=res;
