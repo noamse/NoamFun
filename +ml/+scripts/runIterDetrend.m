@@ -14,15 +14,16 @@ arguments
     Args.UsePixFlagSoruces=false;
     Args.PixFlagSorucesPtctile = 5;
     Args.AnnualEffect=false;
-    Args.NAnualIter = 3;
+    Args.NAnualIter = 2;
     Args.updateObj = false;
-    Args.NIterPix = 4;
+    Args.NIterPix = 2;
+    
 end
 
 
 clear IF;
 IF = IterFit(Obj.copy(),'CelestialCoo',Args.CelestialCoo,'Plx',false,'Chromatic',Args.Chromatic,'ChromaicHighOrder',Args.ChromaicHighOrder,...
-    'HALat',Args.HALat,'AnnualEffect','AnnualEffect');
+    'HALat',Args.HALat,'AnnualEffect','AnnualEffect','AffineNoOnes',false);
 %IF = IterFit(ObjChrom.copy());
 %IF.Plx = Args.Plx; IF.Chromatic =Args.Chromatic;  %IF.HALat=Args.HALat; IF.ChromaicHighOrder = Args.ChromaicHighOrder;
 %IF.CelestialCoo = Args.CelestialCoo; 
@@ -41,15 +42,9 @@ IF.UseWeights = Args.UseWeights;
 
 for I =1:Args.NiterWeights
     IF.runIter;
-end
-
-
-
-
-
- if IF.AnnualEffect
+    if IF.AnnualEffect
      
-     for I=1:Args.NAnualIter 
+
         [Naa]       = calculateNaa(IF);
         [ba]        = calculateBa(IF);
         [IF.epsA,~] = bicg(Naa,ba,1e-8);
@@ -59,32 +54,67 @@ end
         IF.Data.Y = IF.Data.Y - Aay*IF.ParA;
         IF.ParA=IF.initiateParAnnual;
         %updateParAnnual(IF);
-        %IF.epsATrack{end+1} = IF.ParA;
-     end
- end
+        IF.epsATrack{end+1} = IF.ParA;
+    end
+    if Args.PixPhase
 
-
-
-
-
-if Args.PixPhase
-    for Iiter = 1:Args.NIterPix
-        %[IF,Obj] = runIterativePixCorrection(IF,Obj);%,'NIterPix',Args.NIterPix,'NIterNoWeights',);
         [~,PixCorrX,PixCorrY]= ml.detrend.correctPixPhase(IF,Obj.copy());
-        IF.Data.X(:) = IF.Data.X(:) - PixCorrX;    
+        IF.Data.X(:) = IF.Data.X(:) - PixCorrX;
         IF.Data.Y(:) = IF.Data.Y(:) - PixCorrY;
     end
-  
 end
+IF.runIter;
 
-if Args.Plx
-    IF.Plx = true;
-    IF.ParS = IF.initiateParS;
 
-end
-for I =1:Args.NiterWeights
-    IF.runIterBasic;
-end
+
+ % 
+ % 
+ % if IF.AnnualEffect
+ % 
+ %     for I=1:Args.NAnualIter 
+ %        [Naa]       = calculateNaa(IF);
+ %        [ba]        = calculateBa(IF);
+ %        [IF.epsA,~] = bicg(Naa,ba,1e-8);
+ %        [Aax,Aay]   = generateAnnualDesignMat(IF);
+ %        updateParAnnual(IF);
+ %        IF.Data.X = IF.Data.X - Aax*IF.ParA;
+ %        IF.Data.Y = IF.Data.Y - Aay*IF.ParA;
+ %        IF.ParA=IF.initiateParAnnual;
+ %        %updateParAnnual(IF);
+ %        %IF.epsATrack{end+1} = IF.ParA;
+ %     end
+ % end
+% 
+% 
+% for I =1:2
+%     IF.runIter;
+% end
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% if Args.PixPhase
+%     for Iiter = 1:Args.NIterPix
+%         %[IF,Obj] = runIterativePixCorrection(IF,Obj);%,'NIterPix',Args.NIterPix,'NIterNoWeights',);
+%         [~,PixCorrX,PixCorrY]= ml.detrend.correctPixPhase(IF,Obj.copy());
+%         IF.Data.X(:) = IF.Data.X(:) - PixCorrX;    
+%         IF.Data.Y(:) = IF.Data.Y(:) - PixCorrY;
+%     end
+% 
+% end
+% 
+
+% if Args.Plx
+%     IF.Plx = true;
+%     IF.ParS = IF.initiateParS;
+% 
+% end
+% for I =1:Args.NiterWeights
+%     IF.runIter;
+% end
 
 
 if Args.updateObj 

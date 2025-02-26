@@ -4,7 +4,7 @@ function populateMetaData(self,Cat,Im,Args)
     Cat;
     Im;
     Args.KeyNameJD  = {'JD','JDMID'};
-    
+    Args.PSFKbestfitPar = [];
     
     end
 
@@ -24,6 +24,9 @@ function populateMetaData(self,Cat,Im,Args)
     
     pa = atan(sin(HA)./(tan(Lat).*cos(Dec) - sin(Dec).*cos(HA)));
     DeltaPSFXY = Im.PSFData.moment2.X - Im.PSFData.moment2.Y;
+    if ~isempty(Args.PSFKbestfitPar)
+        Cat.UserData = Args.PSFKbestfitPar;
+    end
     try
         CCDTEMP = str2double(Im.HeaderData.Key.CCDTEMP);
         FAFOCUS = str2double(Im.HeaderData.Key.FAFOCUS); % 

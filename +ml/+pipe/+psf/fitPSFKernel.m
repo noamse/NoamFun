@@ -205,9 +205,9 @@ end
 
 function V = dgauss_func_min(x,PSF,StampSize, fit_region_flag,w)
     
-
+    wnor = w(fit_region_flag)./sum(w(fit_region_flag));
     K = ml.pipe.psf.model.doublegauss(x(1,:),x(2,:),'StampSize',StampSize);
-    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2./w(fit_region_flag),'all');
+    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2.*wnor,'all');
 
 end
 
@@ -215,8 +215,8 @@ end
 
 function V = gauss_func_min(x,PSF,StampSize, fit_region_flag,w)
     
-
+    wnor = w(fit_region_flag)./sum(w(fit_region_flag));
     K = imUtil.kernel2.gauss(x(1),StampSize,x(2:3));
-    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2./w(fit_region_flag),'all');
+    V =sum(abs(K(fit_region_flag) - PSF(fit_region_flag)).^2.*wnor,'all');
 
 end

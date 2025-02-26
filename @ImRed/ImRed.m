@@ -31,7 +31,7 @@ classdef ImRed
         Im          = loadImage(self); % done
         RefCat      = loadRefCat(self,Args)
         Im          = constructPSF(self,Im); % Need to add the selectPsfStars parameters to Set
-        Im          = populatePSFKernel(self,Im); % done
+        [Im,ParsFit]= populatePSFKernel(self,Im); % done
         Cat         = iterativePSFPhot(self,Im); % tbd
         RefCat      = adjustRefCat(self,Im); % tbd
         Set         = readParameterStruct(self,Args);

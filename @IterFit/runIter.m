@@ -17,11 +17,6 @@ end
 
 
 
-[Nee]       = calculateNee(IF);
-[be]        = calculateBe(IF);
-[IF.epsE,~]= bicg(Nee,be,1e-8);
-updateParE(IF);
-IF.epsETrack{end+1} = IF.ParE;
 
 
 
@@ -32,6 +27,11 @@ updateParS(IF);
 IF.epsSTrack{end+1} = IF.ParS;
 
 
+[Nee]       = calculateNee(IF);
+[be]        = calculateBe(IF);
+[IF.epsE,~]= bicg(Nee,be,1e-8);
+updateParE(IF);
+IF.epsETrack{end+1} = IF.ParE;
 
 
 if IF.HALat
@@ -53,6 +53,7 @@ if IF.HALat
       updateParHalatBins(IF);
 end
 
+updateRMSTrack(IF);
 % if IF.AnnualEffect
 %     [Naa]       = calculateNaa(IF);
 %     [ba]        = calculateBa(IF);

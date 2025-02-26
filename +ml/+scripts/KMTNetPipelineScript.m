@@ -1,11 +1,8 @@
 
 EventNum = num2str(192630);
-%EventNum = num2str(160949);
-%EventNum = num2str(161569);
-%EventNum = num2str(160023);
 % Directory to save the catalogs. 
-%TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25b/kmt',EventNum, '/'];
-TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
+TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25d/kmt',EventNum, '/'];
+%TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
 mkdir(TargetPath);
 
 %% Read 'CTIO_I' image files from all years 
@@ -19,12 +16,12 @@ DirCell = DirCell(~refflag);
 CCDSEC = [106,406,106,406];
 Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',CCDSEC(1),'CCDSEC_xu',CCDSEC(2),'CCDSEC_yd',CCDSEC(3),'CCDSEC_yu',CCDSEC(4),...
     'MaxRefMag',18.5,'FitRadius',3.5,'NRefMagBin',12,'FitWings',true,'HalfSize',12,...
-    'SNRforPSFConstruct',70,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',3,'MaxRefMagPattern',17,...
+    'SNRforPSFConstruct',80,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',3,'MaxRefMagPattern',16.5,...
     'fitPSFKernelModel','mtd');
 Set.SaveFile = true;
 % Generate KMTNet reference catalog for the specific field and cutouts
 % The options file and the catalog will be written in TargetPath.
-[RefCat,ImR] = ml.generateKMTRefCat(DirCell{15},Set,TargetPath,'Threshold',70);
+[RefCat,ImR] = ml.generateKMTRefCat(DirCell{15},Set,TargetPath,'Threshold',Set.SNRforPSFConstruct);
 % ! Inspect the results, make sure the sources and the reference are
 % aligned in ds9.
 %ds9(ImR);ds9.plot([CCDSEC(1),CCDSEC(3)] + RefCat.getCol({'X','Y'})); 
@@ -62,7 +59,7 @@ FlagNan = ~(isnan(Xguess)|isnan(Yguess));
 ObjSys.Data = ml.util.flag_struct_field(ObjSys.Data,FlagNan  ,'FlagByCol',true);
 Matched.Catalog = Matched.Catalog(FlagNan,:);
 %% Run iterative solution for 
-[IFobj,MMSobj]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
-[IFobjPlx,MMSobjPlx]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
+[IFobj,MMSobj]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',3,'NiterNoWeights',2,'ChromaicHighOrder',true);
+%[IFobjPlx,MMSobjPlx]= ml.scripts.runIterDetrend(ObjSys,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',10,'NiterNoWeights',3,'ChromaicHighOrder',true);
 
 

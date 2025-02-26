@@ -43,7 +43,7 @@ catch
     return;
 end
 if IR.Set.UseKernelPSFPhotometry
-    Im      = populatePSFKernel(IR,Im); % done
+    [Im,PSFKbestfitPar]      = populatePSFKernel(IR,Im); % done
 end
 
 
@@ -52,7 +52,7 @@ end
 Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',IR.Set.FitRadius,'NRefMagBin',IR.Set.NRefMagBin,...
     'UseSourceNoise',IR.Set.UseSourceNoise,'ReCalcBack',IR.Set.ReCalcBack);
 %Cat    = iterativePSFPhot(IR,Im,'HalfSize',HalfSize,'FitRadius',FitRadius,'NRefMagBin',IR.Set.NRefMagBin);
-IR.populateMetaData(Cat,Im);
+IR.populateMetaData(Cat,Im,'PSFKbestfitPar',PSFKbestfitPar);
 if IR.Set.SaveFile
     saveOutputCat(IR,Cat)
 end

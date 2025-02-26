@@ -4,6 +4,7 @@ arguments
     Args.ZPFun = @tools.math.stat.rmean;
     Args.ColNameMag = 'MAG_PSF';
     Args.ColNameRefMag = 'RefMag';
+    Args.ZPFunArgs ={};
 end
 ZP= zeros(Obj.Nepoch,1);
 for Iepoch = 1:numel(Obj.JD)
@@ -12,6 +13,9 @@ for Iepoch = 1:numel(Obj.JD)
 
     %CM.zp(EpochInd) = tools.math.stat.rmean(CM.MS.Data.MAG_PSF(EpochInd,CM.matched_flag_ref_cat)' - ogleI(CM.matched_flag_ogle_cat),1);
     [H] = Obj.designMatrixEpoch(Iepoch,{Args.ColNameMag,Args.ColNameRefMag}, {1,1});
-    ZP(Iepoch) = Args.ZPFun(H(:,1)-H(:,2),1);
+    FlagBright = prctile(H(:,2),50);
+    H = H(H(:,2)<FlagBright,:);
+    DeltaZP = rmoutliers(H(:,1)-H(:,2));
+    ZP(Iepoch) = Args.ZPFun(DeltaZP,Args.ZPFunArgs{:});
 end
 %ZP=reshape(CM.zp,[numel(CM.zp),1]) ;

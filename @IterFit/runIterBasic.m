@@ -25,12 +25,15 @@ updateParS(IF);
 IF.epsSTrack{end+1} = IF.ParS;
 
 
+
 [Nee]       = calculateNee(IF);
 [be]        = calculateBe(IF);
 [IF.epsE,~]= bicg(Nee,be,1e-8);
 updateParE(IF);
 IF.epsETrack{end+1} = IF.ParE;
 
+
+updateRMSTrack(IF);
 
 
 

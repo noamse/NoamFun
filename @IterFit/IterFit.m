@@ -8,7 +8,7 @@ classdef  IterFit< MMS
         ParS; ParE; ParC;ParHalat;ParPix;ParA;
         epsS; epsE; epsC; epsHalat;epsPix;epsA;
         epsSTrack; epsETrack; epsCTrack; epsHalatTrack;epsPixTrack;epsATrack;
-
+        RMSTrack = {};
         AsX; AsY;
         AeX; AeY;
         bs; be;
@@ -16,14 +16,14 @@ classdef  IterFit< MMS
         N;
         Ws; We;
         Wes;
-        PlxTerms;
+        PlxTerms; 
         Chromatic = false; Chrom2D= false;
         HALat = false; PixPhase=false;
         Plx = true; FakePlx=false;AnnualEffect =false;
         UseWeights = true;
         CelestialCoo =  [4.6273,-0.4646];
         newWeights =false;
-        AffSecondOrder = false;
+        AffSecondOrder = false; AffineNoOnes =false;
         ChromaicHighOrder = true;
         CBinWidth = 0.5;
         FlagSourcesPix= [];
@@ -165,8 +165,8 @@ classdef  IterFit< MMS
         runIterDetrend(IF);
         runIterBasic(IF);
         startupIF(IF);
-
-
+        updateRMSTrack(IF);
+        stopCondition(IF);
     end
 
 

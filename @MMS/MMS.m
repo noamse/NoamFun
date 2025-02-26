@@ -64,7 +64,7 @@ classdef  MMS < MatchedSources & matlab.mixin.Copyable
         
         function Result = get.JD0(Obj)
             %Result = median(Obj.JD,'omitnan');
-            Result  = 2457540.5;
+            Result  = 2457540.5+1095;
             Obj.JD0= Result;
             
         end

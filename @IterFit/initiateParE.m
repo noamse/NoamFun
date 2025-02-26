@@ -11,6 +11,9 @@ end
 %    ParE = zeros(6,IF.Nepoch);
 %end
 ParE = zeros(6,IF.Nepoch);
+if IF.AffineNoOnes
+    ParE = zeros(4,IF.Nepoch);
+end
 if IF.AffSecondOrder
     ParE = zeros(12,IF.Nepoch);
 end

@@ -2,7 +2,7 @@ function [NC,edgesC,binC] = generateBins(IF,Args)
 
 arguments
     IF;
-    Args.CBinWidth=1;
+    Args.CBinWidth=0.5;
     Args.ClearBadColor = true;
 end
 
