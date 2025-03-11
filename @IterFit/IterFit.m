@@ -28,6 +28,7 @@ classdef  IterFit< MMS
         CBinWidth = 0.5;
         FlagSourcesPix= [];
         minUncerntainty = 4/400;
+        InitialXYGuess=[]; 
     end
 
 
@@ -112,11 +113,11 @@ classdef  IterFit< MMS
         [Nee]       = calculateNee(IF);
         [be]        = calculateBe(IF);
 
-        [Acx,Acy]   = generateChromDesignMat(IF,Args);
-        [Acx,Acy,Ac]= generateChromaticDesign(IF,Args)
-        [ParC]      = initiateParC(IF,Args);
-        [Ncc]       = calculateNcc(IF);
-        [bc]        = calculateBc(IF);
+        % [Acx,Acy]   = generateChromDesignMat(IF,Args);
+        % [Acx,Acy,Ac]= generateChromaticDesign(IF,Args)
+        % [ParC]      = initiateParC(IF,Args);
+        % [Ncc]       = calculateNcc(IF);
+        % [bc]        = calculateBc(IF);
 
         [ParHalat]      = initiateParHalat(IF,Args);
         [AhalatX,AhalatY]   = generateHALatDesignMat(IF,Args);

@@ -17,13 +17,14 @@ arguments
     Args.NAnualIter = 2;
     Args.updateObj = false;
     Args.NIterPix = 2;
+    Args.InitialXYGuess=[];
     
 end
 
 
 clear IF;
-IF = IterFit(Obj.copy(),'CelestialCoo',Args.CelestialCoo,'Plx',false,'Chromatic',Args.Chromatic,'ChromaicHighOrder',Args.ChromaicHighOrder,...
-    'HALat',Args.HALat,'AnnualEffect','AnnualEffect','AffineNoOnes',false);
+IF = IterFit(Obj.copy(),'CelestialCoo',Args.CelestialCoo,'Plx',Args.Plx,'Chromatic',Args.Chromatic,'ChromaicHighOrder',Args.ChromaicHighOrder,...
+    'HALat',Args.HALat,'AnnualEffect',Args.AnnualEffect,'AffineNoOnes',false,'InitialXYGuess',Args.InitialXYGuess);
 %IF = IterFit(ObjChrom.copy());
 %IF.Plx = Args.Plx; IF.Chromatic =Args.Chromatic;  %IF.HALat=Args.HALat; IF.ChromaicHighOrder = Args.ChromaicHighOrder;
 %IF.CelestialCoo = Args.CelestialCoo; 
@@ -107,14 +108,6 @@ IF.runIter;
 % end
 % 
 
-% if Args.Plx
-%     IF.Plx = true;
-%     IF.ParS = IF.initiateParS;
-% 
-% end
-% for I =1:Args.NiterWeights
-%     IF.runIter;
-% end
 
 
 if Args.updateObj 

@@ -20,10 +20,14 @@ else
 %     ParS = zeros(4,IF.Nsrc);
 end
 
+if ~isempty(IF.InitialXYGuess)
+    Xguess = IF.InitialXYGuess(:,1);
+    Yguess = IF.InitialXYGuess(:,2);
 
-Xguess = IF.medianFieldSource({'X'});
-Yguess = IF.medianFieldSource({'Y'});
-
+else
+    Xguess = IF.medianFieldSource({'X'});
+    Yguess = IF.medianFieldSource({'Y'});
+end
 ParS([1,2],:)= [Xguess';Yguess'];
 
 end
