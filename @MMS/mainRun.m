@@ -39,6 +39,9 @@ else
 end
 AffineMat= Obj.fitAffine(RefCoo,Args.fitAffineArgs{:});
 Obj.applyAffineTran(AffineMat);
+Obj.Data.MAGERR = 0.01*ones(size(Obj.Data.MAG_PSF));
+%ZP =lcUtil.zp_meddiff(Obj,'MagField','MAG_PSF');
+%Obj.applyZP(ZP.FitZP','ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
 ZP = Obj.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag',Args.fitRefZPArgs{:});
 Obj.applyZP(ZP,'ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
 Obj.ZP = ZP;

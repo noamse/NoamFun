@@ -12,8 +12,8 @@ end
     
     RA = Args.Coo(1);
     Dec = Args.Coo(2);
-    PlxX= -1/400 *(X.*sin(RA)- Y.*cos(RA)); 
-    PlxY= 1/400 * (X.*cos(RA).*sin(Dec) + Y.*sin(RA).*sin(Dec) - Z.*cos(Dec)); 
+    PlxX=  -(X.*sin(RA)- Y.*cos(RA)); 
+    PlxY=  (X.*cos(RA).*sin(Dec) + Y.*sin(RA).*sin(Dec) - Z.*cos(Dec)); 
     %PlxX= 1/400 * (X.*sin(RA)- Y.*cos(RA)); 
     %PlxY= 1/400 * (-X.*cos(RA).*sin(RA) - Y.*sin(RA).*sin(Dec) + Z.*cos(Dec)); 
 end

@@ -174,7 +174,7 @@ if Args.PlotMag
     hold on;
 
     errorbar(Bx(FlagX ,1),Bx(FlagX ,2),Bx(FlagX ,3)./sqrt(Bx(FlagX,4)),'.');
-    ylim([-50,50])
+    ylim([-15,15])
 
     ax2 = subplot(3,1,3);
     OutY = isoutlier(Ry,2);
@@ -183,7 +183,7 @@ if Args.PlotMag
     scatter(IF.JD-2450000,Ry,5,'o','filled','MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
     ylabel('Residuals Y [mas]','Interpreter','latex');xlabel('JD - 2450000 [days]','Interpreter','latex')
     hold on;
-    ylim([-50,50])
+    ylim([-15,15])
     errorbar(By(FlagY ,1),By(FlagY ,2),By(FlagY ,3)./sqrt(By(FlagY,4)),'.');
     linkaxes([ax1,ax2,ax3],'x');
 

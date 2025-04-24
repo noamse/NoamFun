@@ -1,4 +1,4 @@
-function [conditions,StdPerCon]= plotHistogramSegment(DataToPlot, DataToFlag, Args)
+function [conditions,= plotHistogramSegment(DataToPlot, DataToFlag, Args)
     % Generalized function to plot a segmented histogram based on conditions
     % Supports multiple outlier removal methods.
     
@@ -57,8 +57,8 @@ function [conditions,StdPerCon]= plotHistogramSegment(DataToPlot, DataToFlag, Ar
     if Args.StdInLegend
         for Icond = 1:numel(Args.conditions)
             cond = Args.conditions{Icond};
-            StdPerCon(Icond) = std(DataToPlot(cond(~flagOut)));
-            Args.labels{Icond} = [Args.labels{Icond}, ' , std = ' num2str(StdPerCon(Icond),3)];
+            StdPerCon(Icond) = tools.math.stat.rstd(DataToPlot(cond(~flagOut)));
+            Args.labels{Icond} = [Args.labels{Icond}, ' , rstd = ' num2str(StdPerCon(Icond))];
         end
     end
 

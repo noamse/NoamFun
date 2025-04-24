@@ -78,13 +78,12 @@ for I =1:Args.NiterWeights
     end
     if Args.PixPhase
 
-        [~,PixCorrX,PixCorrY]= ml.detrend.correctPixPhase(IF,Obj.copy());
+        %[~,PixCorrX,PixCorrY]= ml.detrend.correctPixPhase(IF,Obj.copy());
         [Rx,Ry] = IF.calculateResiduals;
         Wes = IF.calculateWes;
         %[PixCorrX,ParPixX, ~] = correct2DIntraPixelX(Rx(:), IF.Data.Xphase(:), IF.Data.Yphase(:),'Weights',Wes(:));
         %[PixCorrY,ParPixY, ~] = correct2DIntraPixelX(Ry(:), IF.Data.Xphase(:), IF.Data.Yphase(:),'Weights',Wes(:));
-        %[PixCorrX,ParPixX, ~] = correct1DIntraPixelX(Rx(:), IF.Data.Xphase(:),'Weights',Wes(:));
-        %[PixCorrY,ParPixY, ~] = correct1DIntraPixelX(Ry(:), IF.Data.Yphase(:),'Weights',Wes(:));
+        [PixCorrX,ParPixX, ~] = correct2DIntraPixelX(Rx(:), IF.Data.Xphase(:), IF.Data.Yphase(:),'Weights',Wes(:));
         %IF.epsPixTrack{end+1} = [ParPixX,ParPixY];
         IF.Data.X(:) = IF.Data.X(:) - PixCorrX;
         IF.Data.Y(:) = IF.Data.Y(:) - PixCorrY;

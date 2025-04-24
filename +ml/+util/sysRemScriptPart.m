@@ -4,9 +4,8 @@ function [ObjSys,sysCorX,sysCorY]= sysRemScriptPart(IF,Obj,Args)
 arguments
     IF; 
     Obj
-    Args.NIter = 3;
+    Args.NIter =3;
     Args.UseWeight = true;
-    Args.runMagPSF =false;
 end
 
 
@@ -41,14 +40,3 @@ end
 ObjSys.Data.X = ObjSys.Data.X -sysCorX;
 ObjSys.Data.Y = ObjSys.Data.Y -sysCorY;
 
-
-if Args.runMagPSF 
-    SigmaMag = ones(size(IF.Data.MAG_PSF));
-    [~,SysRemMag]= timeSeries.detrend.sysrem(IF.Data.MAG_PSF,SigmaMag,'Niter',3);
-    sysCorMag = zeros(size(SysRemMag(end).A.* SysRemMag(end).C));
-    
-    for Isys = 2:numel(SysRemMag)
-        sysCorMag = sysCorMag+ SysRemMag(Isys).A.* SysRemMag(Isys).C;
-    end
-    ObjSys.Data.MAG_PSF = ObjSys.Data.MAG_PSF - sysCorMag;
-end

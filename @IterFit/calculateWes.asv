@@ -48,12 +48,11 @@ try
     [IsOutlierMoving,Sigmase]  =ml.util.IterativeMovingMedianEpoch(R,M,10,1);
     [RstdX,RstdY] = IF.calculateRstd;
     Rstd2D = sqrt(RstdX.^2 +RstdY.^2);
-    IsOutlierPhot  = isoutlier(IF.Data.MAG_PSF,'movmedian',50,"ThresholdFactor",2,'SamplePoints',IF.JD);
-    [IsOutlierMovingRMS]  =ml.util.IterativeMovingMedian(Rstd2D,M,10,1);
-    Sigmase(IsOutlierMoving | IsOutlierPhot)=nan;
+
+    [IsOutlierMoving,Sigmase]  =ml.util.IterativeMovingMedian(R,M,10,1);
+    Sigmase(IsOutlierMoving)=nan;
     Sigmase(Sigmase<IF.minUncerntainty) = IF.minUncerntainty;
     Wes = 1./Sigmase.^2;
-    Wes(:,IsOutlierMovingRMS) = Wes(:,IsOutlierMovingRMS)/10;
     Wes(isnan(Wes)|isnan(R))=0;
     if Args.NormalizeWeights
         Wes = Wes./sum(Wes(:));

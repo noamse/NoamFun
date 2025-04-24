@@ -1,14 +1,19 @@
 
-EventNum = num2str(192630);
+EventNum = num2str(160949);
+%EventNum = num2str(192630);
 % Directory to save the catalogs. 
-TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25d/kmt',EventNum, '/'];
+%TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25dist/kmt',EventNum, '/'];
+TargetPath = ['/home/noamse/KMT/data/AstCats/test/apr25distCTIO/kmt',EventNum, '/'];
+%TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25nodist/kmt',EventNum, '/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/sites/kmt',EventNum, '/saao/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
 mkdir(TargetPath);
 
 %% Read 'CTIO_I' image files from all years 
-Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*SAAO_I*/'];
-[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','SAAO');
+Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*CTIO_I*/'];
+[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','CTIO');
+%Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*SAAO_I*/'];
+%[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','SAAO');
 refflag = contains(DirCell,'REF'); 
 DirCell = DirCell(~refflag);
 %FieldFlag = contains(DirCell,'BLG42'); 
@@ -17,15 +22,15 @@ DirCell = DirCell(~refflag);
 CCDSEC = [106,406,106,406];
 Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',CCDSEC(1),'CCDSEC_xu',CCDSEC(2),'CCDSEC_yd',CCDSEC(3),'CCDSEC_yu',CCDSEC(4),...
     'MaxRefMag',18.5,'FitRadius',3.5,'NRefMagBin',12,'FitWings',true,'HalfSize',12,...
-    'SNRforPSFConstruct',80,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',3,'MaxRefMagPattern',16.5,...
+    'SNRforPSFConstruct',100,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',7,'MaxRefMagPattern',16.5,...
     'fitPSFKernelModel','mtd');
 Set.SaveFile = true;
 % Generate KMTNet reference catalog for the specific field and cutouts
 % The options file and the catalog will be written in TargetPath.
-[RefCat,ImR] = ml.generateKMTRefCat(DirCell{50},Set,TargetPath,'Threshold',Set.SNRforPSFConstruct);
+[RefCat,ImR] = ml.generateKMTRefCat(DirCell{20},Set,TargetPath,'Threshold',Set.SNRforPSFConstruct);
 % ! Inspect the results, make sure the sources and the reference are
 % aligned in ds9.
-%ds9(ImR);ds9.plot([CCDSEC(1),CCDSEC(3)] + RefCat.getCol({'X','Y'})); 
+ds9(ImR);ds9.plot([CCDSEC(1),CCDSEC(3)] + RefCat.getCol({'X','Y'})); 
 
 
 %% Run the photometry pipeline on all images. 
@@ -36,8 +41,8 @@ Set.SaveFile = true;
  end
 
 
-%% Read catalogs 
-
+%% Run
+% read catalogs
 [Obj,CelestialCoo,Matched]= ml.util.loadAstCatMatch(TargetPath);
 % Remove bad airmass and false fit
 FlagSeczAM = Obj.Data.secz(:,1)<1.6 ;
@@ -45,19 +50,36 @@ FlagSeczAM = Obj.Data.secz(:,1)<1.6 ;
 %Obj.Data=ml.util.flag_struct_field(Obj.Data,flagMag,'FlagByCol',true);
 %Matched.Catalog = Matched.Catalog(flagMag,:); 
 Obj.Data=ml.util.flag_struct_field(Obj.Data,FlagSeczAM,'FlagByCol',false);
-
 Obj.JD = Obj.JD(FlagSeczAM);
 FlagPix = Obj.Data.Yphase==-0.5|Obj.Data.Xphase==-0.5;
 Obj.Data.X(FlagPix) = nan; Obj.Data.Y(FlagPix) = nan;
-[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',3,'NiterNoWeights',2,'ChromaicHighOrder',true);
-[ObjSysAfter,sysCorX,sysCorY] = ml.detrend.sysRemScriptPart(IFsysB,MMSsysB,'UseWeight',true);
+%Obj.Data.X = -Obj.Data.X;
+%%
+% Run before sysrem 
+[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',10,'NiterNoWeights',2,'ChromaicHighOrder',true);
+% sysrem 
+[ObjSysAfter,sysCorX,sysCorY] = ml.util.sysRemScriptPart(IFsysB,MMSsysB,'UseWeight',true,'NIter',3);
 Xguess =median(ObjSysAfter.Data.X,'omitnan')'; Yguess =median(ObjSysAfter.Data.Y,'omitnan')';
 % Flag sources with all nans, rare but can happend
 FlagNan = ~(isnan(Xguess)|isnan(Yguess));
 ObjSysAfter.Data = ml.util.flag_struct_field(ObjSysAfter.Data,FlagNan  ,'FlagByCol',true);
 Matched.Catalog = Matched.Catalog(FlagNan,:);
+% Final run
+[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,'IF',IFsysB.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',4,'NiterNoWeights',2,'ChromaicHighOrder',true,'FinalStep',true);
+%[IFsysContRat,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',false,'AnnualEffect',true,'NiterWeights',2,'NiterNoWeights',2,'ChromaicHighOrder',true,'ContaminatingFlux',ContRatio);
+M = IFsys.medianFieldSource({'MAG_PSF'});
+[RstdX,RstdY] = IFsys.calculateRstd;
+Rstd2D = sqrt(RstdX.^2 +RstdY.^2);
+[OutLiersFlagOriginal, ~] = ml.util.IterativeMovingMedian(Rstd2D, M);
+FlagMagZP = true(size(M));
+FlagMagZP(OutLiersFlagOriginal)=false;
+ZP = IFsys.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag','FlagSources',FlagMagZP);
+IFsys.applyZP(ZP,'ApplyToMagField','MAG_PSF');
+Obj.applyZP(ZP,'ApplyToMagField','MAG_PSF');
+ZP = IFsys.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag','FlagSources',FlagMagZP);
+Obj.applyZP(ZP,'ApplyToMagField','MAG_PSF');
+IFsys.applyZP(ZP,'ApplyToMagField','MAG_PSF');
 
-[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',2,'NiterNoWeights',2,'ChromaicHighOrder',true);
 
 
 %% Run first iteration and than SYSREM 
@@ -92,34 +114,50 @@ DistanceMatchedRef(DistanceMatchedRef==0)=Inf;
 FluxDist = (FluxRef./FluxMatch')./DistanceMatchedRef.^2;
 ContRatio = max(FluxDist)';
 MinDistance = min(DistanceMatchedRef);
+% try nn in contflux 
+%[MinDistance,IminD] = min(DistanceMatchedRef);
+%ContRatio = (FluxDist(IminD))';
 %FlagMagPlot = M<18.5;
 % [RstdX,RstdY,M] = IFobj.plotResRMS;
 [RstdX,RstdY] = IFT.calculateRstd;
- RstdBoot  = sqrt(RstdX.^2 +RstdY.^2);
-scatter(M,RstdBoot,3000./(MinDistance'),log10(ContRatio ),'.')
+ Rstd2D  = sqrt(RstdX.^2 +RstdY.^2);
+ [OutLiersFlagOriginal, MovingMedian] = ml.util.IterativeMovingMedian(Rstd2D, M);
+
+scatter(M,Rstd2D,6000./(MinDistance'),log10(ContRatio ),'.')
+%scatter(M,Rstd2D,300,[0.3,0.1,0.7],'.')
+hold on;
+scatter(M(OutLiersFlagOriginal),Rstd2D(OutLiersFlagOriginal),6000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
+%scatter(M(OutLiersFlagOriginal),Rstd2D(OutLiersFlagOriginal),300,[0.7,0.4,0.1],'*')
 set(gca,'ylim',[2,100]);
 set(gca,'yscale','log');
 yticks([5,10,20,50])
 xticks([14,15,16,17,18,19])
 ylabel('rms(Residuals) (2D) [mas]','Interpreter','latex')
 xlabel('I [mag]','Interpreter','latex');
-cb = colorbar;
-caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
-ylabel(cb,'$log(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
-colormap('turbo');
+%cb = colorbar;
+%caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
+%ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
+%colormap('turbo');
 
 figure; 
-scatter(M,RstdY,3000./(MinDistance'),log10(ContRatio ),'.')
+%scatter(M,RstdY,6000./(MinDistance'),log10(ContRatio ),'.')
+scatter(M,RstdY,300,[0.3,0.1,0.7],'.')
+hold on;
+%scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),6000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
+scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),300,[0.7,0.4,0.1],'*')
+
+%hold on;
+%scatter(M,RstdY,3000./(MinDistance'),log10(ContRatio),'*')
 set(gca,'ylim',[2,100]);
 set(gca,'yscale','log');
 yticks([5,10,20,50])
 xticks([14,15,16,17,18,19])
 ylabel('rms(y-axis Residuals) (1D) [mas]','Interpreter','latex')
 xlabel('I [mag]','Interpreter','latex');
-cb = colorbar;
-caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
-ylabel(cb,'$log(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
-colormap('turbo');
+%cb = colorbar;
+%caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
+%ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
+%colormap('turbo');
 
 flagContRatio = ContRatio<0.1 & MinDistance'>4;
 

@@ -27,8 +27,9 @@ classdef  IterFit< MMS
         ChromaicHighOrder = true;
         CBinWidth = 0.5;
         FlagSourcesPix= [];
-        minUncerntainty = 4/400;
+        minUncerntainty = 2/400;
         InitialXYGuess=[]; 
+        ContaminatingFlux=[];
     end
 
 
@@ -130,6 +131,11 @@ classdef  IterFit< MMS
         [ba]        = calculateBa(IF);
 
 
+        %[Aax,Aay]   = generateAnnualDesignMatBins(IF);
+        [Naa]       = calculateNaaBins(IF);
+        [ba]        = calculateBaBins(IF);
+
+
 
         [Wes]       = calculateWes(IF,Args);
         [Ws]        = calculateWs(IF);
@@ -162,6 +168,7 @@ classdef  IterFit< MMS
         updateParPix(IF);
         updateParHalatBins(IF);
         updateParAnnual(IF);
+        updateParAnnualBins(IF)
         runIter(IF);
         runIterDetrend(IF);
         runIterBasic(IF);
