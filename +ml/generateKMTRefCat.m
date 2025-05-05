@@ -1,9 +1,9 @@
-function [RefCat,Im]= generateKMTRefCat(ImPath,Set,TargetPath,Args)
+function [RefCat,Im,success,Stats]= generateKMTRefCat(ImPaths,Set,TargetPath,Args)
 arguments
-    ImPath
+    ImPaths
     Set
     TargetPath
-    Args.Threshold = 150;
+    Args.Threshold = 120;
     Args.MedianCubeSumRange = [0.8 4];
     Args.ColNumMagRefTab = 3;
     Args.Range = [-100,100];
@@ -13,6 +13,36 @@ arguments
     Args.SaveCat= true;
     Args.HistoryKey  = 'HISTORY';
 end
+
+% Step 1: Choose best image from fixed index set based on lowest SECZ
+candidateIndices = 1:5:100;
+candidateIndices = candidateIndices(candidateIndices <= numel(ImPaths));
+seczVals = nan(1, length(candidateIndices));
+validFlags = false(1, length(candidateIndices));
+
+for i = 1:length(candidateIndices)
+    idx = candidateIndices(i);
+    try
+        hdr = AstroHeader({ImPaths{idx}});
+        seczVals(i) = str2double(hdr.getVal('SECZ'));
+        validFlags(i) = true;
+    catch
+        warning('Could not read SECZ from %s', ImPaths{idx});
+    end
+end
+
+if ~any(validFlags)
+    error('No valid SECZ headers found among candidate images.');
+end
+
+[~, bestIdx] = min(seczVals(validFlags));
+validCandidateIndices = candidateIndices(validFlags);
+bestIndex = validCandidateIndices(bestIdx);
+ImPath = ImPaths{bestIndex};
+fprintf('Selected reference image: %s (SECZ = %.3f)\n', ImPath, seczVals((bestIdx)));
+
+
+
 
 RefTab = ml.kmt.read_kmt9k_cat(ImPath,'MaxMag',Set.MaxRefMag,'HistoryKey',Args.HistoryKey );
 Im = AstroImage(ImPath );
@@ -26,7 +56,7 @@ Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadS
 Isort = (sort(RefTab(:,Args.ColNumMagRefTab)));
 MaxI = Isort(round(numel(Im.CatData.Catalog(:,1))));
 
-[NewX,NewY,PatternMat]= ml.kmt.match_kmt9k_Pattern(Im.CatData,RefTab,'Range',Args.Range,'MaxMag',MaxI,'XYCols',{'X','Y'},'Step',Args.Step);
+[NewX,NewY,PatternMat,Stats]= ml.kmt.match_kmt9k_Pattern(Im.CatData,RefTab,'Range',Args.Range,'MaxMag',MaxI,'XYCols',{'X','Y'},'Step',Args.Step);
 RefCatNew = RefTab;
 RefCatNew(:,[1,2]) =[NewX,NewY];
 
@@ -45,3 +75,4 @@ RefCat= ml.pipe.util.setOgleCat(TargetPath,'OgleCat',RefCat,'SavedCatFileName','
 
 
 
+success = ~all(isnan(NewX)) && ~isempty(RefCatNew);

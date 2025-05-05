@@ -1,9 +1,9 @@
 
-EventNum = num2str(160949);
-%EventNum = num2str(192630);
+%EventNum = num2str(160949);
+EventNum = num2str(192630);
 % Directory to save the catalogs. 
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25dist/kmt',EventNum, '/'];
-TargetPath = ['/home/noamse/KMT/data/AstCats/test/apr25distCTIO/kmt',EventNum, '/'];
+TargetPath = ['/home/noamse/KMT/data/AstCats/test/may25CTIO/kmt',EventNum, '/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25nodist/kmt',EventNum, '/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/sites/kmt',EventNum, '/saao/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
@@ -12,6 +12,8 @@ mkdir(TargetPath);
 %% Read 'CTIO_I' image files from all years 
 Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*CTIO_I*/'];
 [DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','CTIO');
+%Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*_I*/'];
+%[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','');
 %Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*SAAO_I*/'];
 %[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','SAAO');
 refflag = contains(DirCell,'REF'); 
@@ -27,10 +29,10 @@ Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',CCDSEC(1),'CCDSEC_xu',CCDSE
 Set.SaveFile = true;
 % Generate KMTNet reference catalog for the specific field and cutouts
 % The options file and the catalog will be written in TargetPath.
-[RefCat,ImR] = ml.generateKMTRefCat(DirCell{20},Set,TargetPath,'Threshold',Set.SNRforPSFConstruct);
+[RefCat,Im,success,Stats] = ml.generateKMTRefCat(DirCell,Set,TargetPath,'Threshold',Set.SNRforPSFConstruct);
 % ! Inspect the results, make sure the sources and the reference are
 % aligned in ds9.
-ds9(ImR);ds9.plot([CCDSEC(1),CCDSEC(3)] + RefCat.getCol({'X','Y'})); 
+%ds9(ImR);ds9.plot([CCDSEC(1),CCDSEC(3)] + RefCat.getCol({'X','Y'})); 
 
 
 %% Run the photometry pipeline on all images. 
@@ -56,7 +58,7 @@ Obj.Data.X(FlagPix) = nan; Obj.Data.Y(FlagPix) = nan;
 %Obj.Data.X = -Obj.Data.X;
 %%
 % Run before sysrem 
-[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',10,'NiterNoWeights',2,'ChromaicHighOrder',true);
+[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',2,'ChromaicHighOrder',true);
 % sysrem 
 [ObjSysAfter,sysCorX,sysCorY] = ml.util.sysRemScriptPart(IFsysB,MMSsysB,'UseWeight',true,'NIter',3);
 Xguess =median(ObjSysAfter.Data.X,'omitnan')'; Yguess =median(ObjSysAfter.Data.Y,'omitnan')';
@@ -65,7 +67,7 @@ FlagNan = ~(isnan(Xguess)|isnan(Yguess));
 ObjSysAfter.Data = ml.util.flag_struct_field(ObjSysAfter.Data,FlagNan  ,'FlagByCol',true);
 Matched.Catalog = Matched.Catalog(FlagNan,:);
 % Final run
-[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,'IF',IFsysB.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',true,'PixPhase',true,'AnnualEffect',false,'NiterWeights',4,'NiterNoWeights',2,'ChromaicHighOrder',true,'FinalStep',true);
+[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,'IF',IFsysB.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',4,'NiterNoWeights',2,'ChromaicHighOrder',true,'FinalStep',true);
 %[IFsysContRat,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',false,'AnnualEffect',true,'NiterWeights',2,'NiterNoWeights',2,'ChromaicHighOrder',true,'ContaminatingFlux',ContRatio);
 M = IFsys.medianFieldSource({'MAG_PSF'});
 [RstdX,RstdY] = IFsys.calculateRstd;

@@ -69,13 +69,6 @@ try
     dy = transRef(valid,2) - imgPos(idx(valid),2);
     dr = sqrt(dx.^2 + dy.^2);
     
-    Stats.MeanResidualX   = mean(dx);
-    Stats.MeanResidualY   = mean(dy);
-    Stats.StdResidualX    = std(dx);
-    Stats.StdResidualY    = std(dy);
-    Stats.MedianResidualX = median(dx);
-    Stats.MedianResidualY = median(dy);
-
     Stats.NMatched = sum(valid);
     Stats.TotalRef = size(transRef,1);
     Stats.MatchFraction = Stats.NMatched / Stats.TotalRef;
@@ -86,14 +79,12 @@ try
     Stats.dx = dx;
     Stats.dy = dy;
     Stats.Residuals = dr;
-fprintf('Pattern Match: %d matched of %d (%.1f%%), %d used for residual stats\n', ...
-    Stats.NMatched, Stats.TotalRef, 100 * Stats.MatchFraction, Stats.NUsed);
-fprintf('Mean residuals: X = %.3f, Y = %.3f, total = %.3f px\n', ...
-    Stats.MeanResidualX, Stats.MeanResidualY, Stats.MeanResidual);
-fprintf('Std  residuals: X = %.3f, Y = %.3f, total = %.3f px\n', ...
-    Stats.StdResidualX, Stats.StdResidualY, Stats.StdResidual);
-fprintf('Median residuals: X = %.3f, Y = %.3f, total = %.3f px\n', ...
-    Stats.MedianResidualX, Stats.MedianResidualY, Stats.MedianResidual);
+
+    fprintf('Pattern Match: %d matched of %d (%.1f%%), %d used for residual stats\n', ...
+        Stats.NMatched, Stats.TotalRef, 100 * Stats.MatchFraction, Stats.NUsed);
+    fprintf('Mean residual = %.3f px | RMS = %.3f px | Median = %.3f px\n', ...
+        Stats.MeanResidual, Stats.StdResidual, Stats.MedianResidual);
+
 
 catch ME
     % Return empty to indicate failure
