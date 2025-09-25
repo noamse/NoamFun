@@ -21,7 +21,7 @@ function OutLiersFlagOriginal = iterativeOutlierDetection(Rstd2D, M, maxIteratio
 
         % Run isoutlier only on valid (non-flagged) data
         OutLiersMagRMSd = false(size(Rstd2_sorted)); % Initialize
-        OutLiersMagRMSd(validIdx) = isoutlier(Rstd2_sorted(validIdx), 'movmedian', Args.MoveMedianStep, 'SamplePoints', M_sorted(validIdx));
+        OutLiersMagRMSd(validIdx) = isoutlier(Rstd2_sorted(validIdx), 'movmedian', Args.MoveMedianStep, 'SamplePoints', M_sorted(validIdx),ThresholdFactor=2);
 
         % Update the flag
         OutLiersFlag = OutLiersFlag | OutLiersMagRMSd;

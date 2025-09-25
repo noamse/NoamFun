@@ -1,0 +1,211 @@
+function responseText = sendTelegramImageAndWaitForReply(imagePath, chatID, timeoutSeconds, botToken)
+% Sends an image via Telegram and waits for a reply (Telegram or MATLAB terminal).
+% Usage:
+%   r = ut.sendTelegramImageAndWaitForReply("img.png")
+%   r = ut.sendTelegramImageAndWaitForReply("img.png", chatID)
+%   r = ut.sendTelegramImageAndWaitForReply("img.png", chatID, timeoutSeconds)
+%   r = ut.sendTelegramImageAndWaitForReply("img.png", chatID, timeoutSeconds, botToken)
+
+    arguments
+        imagePath (1,:) char
+        chatID (1,:) char = ""          % default from TELEGRAM_CHAT_ID
+        timeoutSeconds (1,1) double = 7000
+        botToken (1,:) char = ""        % default from TELEGRAM_BOT_TOKEN
+    end
+
+    % === Fill defaults from env vars ===
+    if chatID == ""
+        envChat = getenv("TELEGRAM_CHAT_ID");
+        if envChat ~= ""; chatID = envChat; end
+    end
+    if botToken == ""
+        envTok = getenv("TELEGRAM_BOT_TOKEN");
+        if envTok ~= ""; botToken = envTok; end
+    end
+
+    if chatID == ""
+        error("chatID not provided. Pass it, or set TELEGRAM_CHAT_ID env var.");
+    end
+    if botToken == ""
+        error("botToken not provided. Pass it, or set TELEGRAM_BOT_TOKEN env var.");
+    end
+
+    apiURL = "https://api.telegram.org/bot" + string(botToken);
+
+    % === Validate image ===
+    if ~isfile(imagePath)
+        error("File does not exist: %s", imagePath);
+    end
+
+    % === Send image ===
+    fprintf("Sending image to chat %s...\n", chatID);
+    imgEsc = strrep(imagePath, '"', '\"');
+    cmd = sprintf([ ...
+        'curl -s -X POST "%s/sendPhoto" ', ...
+        '-F chat_id=%s -F photo=@"%s" -F caption="%s"'], ...
+        apiURL, chatID, imgEsc, "Please REPLY to this photo with your message.");
+    [status, output] = system(cmd);
+    if status ~= 0; error("curl failed: %s", output); end
+
+    jsonResp = jsondecode(output);
+    if ~isfield(jsonResp, "ok") || ~jsonResp.ok
+        error("Telegram error: %s", jsonResp.description);
+    end
+    sentMessageID = jsonResp.result.message_id;
+
+    fprintf("Image sent. Waiting for reply (timeout=%ds)...\n", timeoutSeconds);
+
+    % === Get last update_id ===
+    lastUpdateID = 0;
+    try
+        updates = webread(apiURL + "/getUpdates");
+        if isfield(updates, "result") && ~isempty(updates.result)
+            lastUpdateID = updates.result(end).update_id;
+        end
+    catch
+        warning("Could not get initial update ID.");
+    end
+
+    % === Poll loop (Telegram + MATLAB terminal) ===
+    responseText = "";
+    tStart = tic;
+    opts = weboptions("Timeout", 25);
+
+    while toc(tStart) < timeoutSeconds
+        pause(1);
+
+        % 1) MATLAB terminal input
+        if hasStdin()
+            responseText = input("Enter response (MATLAB terminal): ", "s");
+            fprintf("Reply received from MATLAB terminal.\n");
+            return;
+        end
+
+        % 2) Telegram
+        try
+            updates = webread(apiURL + "/getUpdates", ...
+                "offset", lastUpdateID + 1, ...
+                "timeout", 5, opts);
+        catch
+            continue;
+        end
+
+        if isfield(updates, "result") && ~isempty(updates.result)
+            for i = 1:numel(updates.result)
+                upd = updates.result(i);
+                if isfield(upd, "update_id"); lastUpdateID = upd.update_id; end
+                if ~isfield(upd, "message"); continue; end
+                msg = upd.message;
+                if string(msg.chat.id) ~= string(chatID); continue; end
+
+                if isfield(msg, "reply_to_message") && ...
+                   msg.reply_to_message.message_id == sentMessageID && ...
+                   isfield(msg, "text")
+                    responseText = msg.text;
+                    fprintf("Reply received from Telegram.\n");
+                    return;
+                end
+            end
+        end
+    end
+
+    fprintf("Timeout reached. No reply received.\n");
+end
+
+
+function tf = hasStdin()
+    % non-blocking keyboard check
+    tf = false;
+    try
+        tf = feature("IsInteractive") && usejava("jvm") && java.lang.System.in.available() > 0;
+    catch
+    end
+end
+
+
+% function responseText = sendTelegramImageAndWaitForReply(imagePath, timeoutSeconds)
+% % Sends a PNG image via Telegram and waits for a reply
+% 
+%     arguments
+%         imagePath (1,:) char
+%         timeoutSeconds (1,1) double = 7000
+%     end
+% 
+%     % === Telegram Configuration ===
+%     botToken = '8133686636:AAHUEuL9g_G1_UIdGRY2MFWBhK9cH8GhoWg';
+%     chatID = '7700572066';  % must be a string for curl
+%     apiURL = "https://api.telegram.org/bot" + botToken;
+% 
+%     % === Validate Image ===
+%     if ~isfile(imagePath)
+%         error("File does not exist: %s", imagePath);
+%     end
+% 
+%     % === Send image using curl ===
+%     disp("Sending image...");
+% 
+%     cmd = sprintf([...
+%         'curl -s -X POST "%s/sendPhoto" ', ...
+%         '-F chat_id=%s -F photo=@"%s"'], ...
+%         apiURL, chatID, imagePath);
+% 
+%     [status, output] = system(cmd);
+%     ut.sendTelegram(['Image path = ',imagePath])
+% 
+%     if status ~= 0
+%         error("Failed to send image. curl error: %s", output);
+%     end
+% 
+%     jsonResp = jsondecode(output);
+%     if ~isfield(jsonResp, "ok") || ~jsonResp.ok
+%         error("Telegram error: %s", jsonResp.description);
+%     end
+% 
+%     disp("Image sent. Waiting for reply...");
+% 
+%     % === Get last update_id to skip old messages ===
+%     lastUpdateID = 0;
+%     try
+%         updates = webread(apiURL + "/getUpdates");
+%         if isfield(updates, 'result') && ~isempty(updates.result)
+%             lastUpdateID = updates.result(end).update_id;
+%         end
+%     catch
+%         warning("Could not get initial update ID.");
+%     end
+% 
+%     % === Poll for user reply ===
+%     tStart = tic;
+%     responseText = '';
+% 
+%     while toc(tStart) < timeoutSeconds
+%         pause(1);
+% 
+%         try
+%             updates = webread(apiURL + "/getUpdates", ...
+%                 'offset', lastUpdateID + 1, ...
+%                 'timeout', 5);
+%         catch
+%             continue;
+%         end
+% 
+%         if isfield(updates, 'result') && ~isempty(updates.result)
+%             for i = 1:length(updates.result)
+%                 upd = updates.result(i);
+%                 lastUpdateID = upd.update_id;
+% 
+%                 if isfield(upd, 'message') && ...
+%                    isfield(upd.message, 'chat') && ...
+%                    strcmp(string(upd.message.chat.id), chatID) && ...
+%                    isfield(upd.message, 'text')
+% 
+%                     responseText = upd.message.text;
+%                     disp("Reply received.");
+%                     return;
+%                 end
+%             end
+%         end
+%     end
+% 
+%     disp("Timeout reached. No reply received.");
+% end

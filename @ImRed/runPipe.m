@@ -1,7 +1,16 @@
-function [ImagePath] = runPipe(ImagePath,CatPathTarget)
-
+function [success,ImagePath] = runPipe(ImagePath,CatPathTarget,Args)
+arguments
+    ImagePath;
+    CatPathTarget;
+    Args.SettingStruct = [];
+end
+success = 0;
 IR = ImRed(ImagePath,CatPathTarget);
-IR.Set  = readParameterStruct(IR);
+if isempty(Args.SettingStruct)
+    IR.Set  = readParameterStruct(IR);
+else
+    IR.Set  = Args.SettingStruct ;
+end
 
 Im      = loadImage(IR); % done
 IR.RefCatalog  = loadRefCat(IR);
@@ -29,21 +38,22 @@ end
 
 try
 
-RefCat = IR.RefCatalog.copy();
-Im = imProc.sources.findMeasureSources(Im.copy(),'OnlyForced',true,'ForcedList',RefCat.getCol({'X','Y'}),'ReCalcBack',false);
-[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]...
-    ,'CubeSumRange',[0.8 4],'SmoothWings',false,...
-    'psf_zeroConvergeArgs',{'Radius',IR.Set.HalfSize}},'HalfSize',IR.Set.HalfSize...
-    ,'selectPsfStarsArgs',{'RangeSN',[20,500]});
-catch 
+    RefCat = IR.RefCatalog.copy();
+    Im = imProc.sources.findMeasureSources(Im.copy(),'OnlyForced',true,'ForcedList',RefCat.getCol({'X','Y'}),'ReCalcBack',false);
+    [Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]...
+        ,'CubeSumRange',[0.8 4],'SmoothWings',false,...
+        'psf_zeroConvergeArgs',{'Radius',IR.Set.HalfSize}},'HalfSize',IR.Set.HalfSize...
+        ,'selectPsfStarsArgs',{'RangeSN',[20,500]});
+    if IR.Set.UseKernelPSFPhotometry
+        [Im,PSFKbestfitPar]      = populatePSFKernel(IR,Im); % done
+    end
+
+catch
     disp('Failed to construct PSF in second iter')
     Cat = AstroCatalog;
     IR.populateMetaData(Cat,Im);
     saveOutputCat(IR,Cat)
     return;
-end
-if IR.Set.UseKernelPSFPhotometry
-    [Im,PSFKbestfitPar]      = populatePSFKernel(IR,Im); % done
 end
 
 
@@ -56,5 +66,6 @@ IR.populateMetaData(Cat,Im,'PSFKbestfitPar',PSFKbestfitPar);
 if IR.Set.SaveFile
     saveOutputCat(IR,Cat)
 end
+success = 1;
 %ImagePath
 end

@@ -4,8 +4,9 @@ arguments
     IF;
     Args.closeall = false;
     Args.title = '';
-    Args.PlotY= true;
-    Args.Plot2D = true;
+    Args.Plot2D = false;
+    Args.PlotCorr= true;    
+    Args.XYtogether =false;
 end
 % [Rx,Ry] = IF.calculateResiduals;
 % Wes=  IF.calculateWes;
@@ -22,20 +23,39 @@ end
 [RStdPrcX,RStdPrcY] = IF.calculateRstd;
 
 M = IF.medianFieldSource({'MAG_PSF'});
+Rstd2D = sqrt(RStdPrcX.^2 + RStdPrcY.^2);
 
+OutLiersRMSvsMag = ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',0.5);
 if (Args.closeall)
     close all;
 end
 
-figure;
-semilogy(M,RStdPrcX,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
-xlabel('I')
-ylabel('rms(Rx) [mas]')
-title(Args.title)
-if Args.PlotY
+
+if Args.XYtogether
     figure;
-    semilogy(M,RStdPrcY,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
-    xlabel('I')
+    semilogy(M(~OutLiersRMSvsMag),RStdPrcX(~OutLiersRMSvsMag),'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    semilogy(M(OutLiersRMSvsMag),RStdPrcX(OutLiersRMSvsMag),'*','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    xlabel('I [mag]')
+    semilogy(M(~OutLiersRMSvsMag),RStdPrcY(~OutLiersRMSvsMag),'d','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    semilogy(M(OutLiersRMSvsMag),RStdPrcY(OutLiersRMSvsMag),'o','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    
+else
+
+    figure;
+    semilogy(M(~OutLiersRMSvsMag),RStdPrcX(~OutLiersRMSvsMag),'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    semilogy(M(OutLiersRMSvsMag),RStdPrcX(OutLiersRMSvsMag),'*','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    xlabel('I [mag]')
+    ylabel('rms(Rx) [mas]')
+    title(Args.title)
+
+    figure;
+    semilogy(M(~OutLiersRMSvsMag),RStdPrcY(~OutLiersRMSvsMag),'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    semilogy(M(OutLiersRMSvsMag),RStdPrcY(OutLiersRMSvsMag),'*','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    xlabel('I [mag]')
     ylabel('rms(Ry) [mas]')
     title(Args.title)
 end
@@ -43,9 +63,25 @@ end
 
 if Args.Plot2D 
     figure;
-    RstdPrc = sqrt(RStdPrcY.^2 +RStdPrcX.^2);
-    semilogy(M,RstdPrc  ,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
-    xlabel('I')
+    %RstdPrc = sqrt(RStdPrcY.^2 +RStdPrcX.^2);
+    semilogy(M(~OutLiersRMSvsMag),Rstd2D(~OutLiersRMSvsMag)  ,'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    semilogy(M(OutLiersRMSvsMag),Rstd2D(OutLiersRMSvsMag)  ,'*','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    xlabel('I [mag]')
     ylabel('rms(R) [mas]')
     title(Args.title)
 end
+figure;
+
+if Args.PlotCorr
+    loglog(RStdPrcX(~OutLiersRMSvsMag),RStdPrcY(~OutLiersRMSvsMag),'.','Color',[0.5,0.2,0.8],'MarkerSize',18)
+    hold on;
+    loglog(RStdPrcX(OutLiersRMSvsMag),RStdPrcY(OutLiersRMSvsMag),'*','Color',[0.71, 0.40, 0.11],'MarkerSize',18)
+    plot([min([RStdPrcX(:);RStdPrcX(:)]),max([RStdPrcX(:);RStdPrcX(:)])],[min([RStdPrcX(:);RStdPrcX(:)]),max([RStdPrcX(:);RStdPrcX(:)])]);
+    xlabel('rms(Rx) [mas]')
+    ylabel('rms(Ry) [mas]')
+    %axis box;
+end
+
+
+

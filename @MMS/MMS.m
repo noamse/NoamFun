@@ -45,7 +45,7 @@ classdef  MMS < MatchedSources & matlab.mixin.Copyable
         [Out]           = photometryOutliers(Obj,Args);
         applySourceFlag(Obj,Flag);
         [MatchedCat,FlagMatched]    = matchToRefCat(RefCat,Args);
-        
+        [CorrectedObj, SysRemSummary, SysEffect] = SysRemPhotometry(Obj,Args)
         
         mainRun(Obj,MatchedMat,Args)
     end

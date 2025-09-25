@@ -4,7 +4,7 @@ function [ObjSys,sysCorX,sysCorY]= sysRemScriptPart(IF,Obj,Args)
 arguments
     IF; 
     Obj
-    Args.NIter = 3;
+    Args.NIter = 1;
     Args.UseWeight = true;
     Args.runMagPSF =false;
 end

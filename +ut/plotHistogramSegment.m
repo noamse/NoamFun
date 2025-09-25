@@ -1,4 +1,4 @@
-function [conditions,StdPerCon]= plotHistogramSegment(DataToPlot, DataToFlag, Args)
+function [conditions,StdPerCon,flagOut]= plotHistogramSegment(DataToPlot, DataToFlag, Args)
     % Generalized function to plot a segmented histogram based on conditions
     % Supports multiple outlier removal methods.
     
@@ -51,6 +51,7 @@ function [conditions,StdPerCon]= plotHistogramSegment(DataToPlot, DataToFlag, Ar
     end
 
     % Filter data based on the selected outlier removal method
+    
     DataToPlot = DataToPlot(~flagOut);
     DataToFlag = DataToFlag(~flagOut);
 

@@ -1,4 +1,4 @@
-function [RefCat,Im,success,Stats]= generateKMTRefCat(ImPaths,Set,TargetPath,Args)
+function [RefCat,Im,success,Stats,LogStr]= generateKMTRefCat(ImPaths,Set,TargetPath,Args)
 arguments
     ImPaths
     Set
@@ -6,22 +6,26 @@ arguments
     Args.Threshold = 120;
     Args.MedianCubeSumRange = [0.8 4];
     Args.ColNumMagRefTab = 3;
-    Args.Range = [-100,100];
+    Args.Range = [-300,300];
     Args.Step = 0.05
     Args.MaxRefMagPattern = [];
     Args.ColName9K = {'X','Y','I','V-I','Var','??','RA','Dec','Patch1','Patch2','XpatchPos','YpatchPos'} ;
     Args.SaveCat= true;
     Args.HistoryKey  = 'HISTORY';
+    Args.SNPrctileRange = [60,95];
+    Args.MaxNumOfSourceImCat = 100;
+    Args.MaxMagForFit = 16;
+    Args.CandidateIndices=1:4:100;
 end
 
 % Step 1: Choose best image from fixed index set based on lowest SECZ
-candidateIndices = 1:5:100;
-candidateIndices = candidateIndices(candidateIndices <= numel(ImPaths));
-seczVals = nan(1, length(candidateIndices));
-validFlags = false(1, length(candidateIndices));
+CandidateIndices = Args.CandidateIndices;
+CandidateIndices = CandidateIndices(CandidateIndices <= numel(ImPaths));
+seczVals = nan(1, length(CandidateIndices));
+validFlags = false(1, length(CandidateIndices));
 
-for i = 1:length(candidateIndices)
-    idx = candidateIndices(i);
+for i = 1:length(CandidateIndices)
+    idx = CandidateIndices(i);
     try
         hdr = AstroHeader({ImPaths{idx}});
         seczVals(i) = str2double(hdr.getVal('SECZ'));
@@ -34,9 +38,9 @@ end
 if ~any(validFlags)
     error('No valid SECZ headers found among candidate images.');
 end
-
+seczVals(seczVals<1.05)=Inf;
 [~, bestIdx] = min(seczVals(validFlags));
-validCandidateIndices = candidateIndices(validFlags);
+validCandidateIndices = CandidateIndices(validFlags);
 bestIndex = validCandidateIndices(bestIdx);
 ImPath = ImPaths{bestIndex};
 fprintf('Selected reference image: %s (SECZ = %.3f)\n', ImPath, seczVals((bestIdx)));
@@ -47,8 +51,26 @@ fprintf('Selected reference image: %s (SECZ = %.3f)\n', ImPath, seczVals((bestId
 RefTab = ml.kmt.read_kmt9k_cat(ImPath,'MaxMag',Set.MaxRefMag,'HistoryKey',Args.HistoryKey );
 Im = AstroImage(ImPath );
 Im.Image=single(Im.Image);
-Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadSources',true,'BackPar',...
+Im = imProc.sources.findMeasureSources(Im,'Threshold',40,'RemoveBadSources',true,'BackPar',...
     {'BackFun',@median,'BackFunPar',{'all','omitnan'},'VarFun','@imUtil.background.rvar'});
+SN_cols = Im.CatData.ColNames(contains(Im.CatData.ColNames, 'SN_'));
+[MedianSN, IndMaxSN]= max(median(Im.CatData.getCol(SN_cols)));
+% SNCol = Im.CatData.getCol(SN_cols{IndMaxSN});
+% SNHighLow = prctile(Im.CatData.getCol(SN_cols{IndMaxSN}),Args.SNPrctileRange);
+% FlagSN = SNCol>=min(SNHighLow) & SNCol<=max(SNHighLow);
+SNCol = Im.CatData.getCol(SN_cols{IndMaxSN});
+SNHighLow = prctile(SNCol, [Args.SNPrctileRange]);
+ValidInds = find(SNCol >= SNHighLow(1) & SNCol <= SNHighLow(2));
+if numel(ValidInds) > Args.MaxNumOfSourceImCat
+    SN_subset = SNCol(ValidInds);
+    [~, sortIdx] = sort(SN_subset, 'descend');
+    SelectedInds = ValidInds(sortIdx(1:Args.MaxNumOfSourceImCat));
+else
+    SelectedInds = ValidInds;
+end
+FlagSN = false(size(SNCol));
+FlagSN(SelectedInds) = true;
+Im.CatData.Catalog = Im.CatData.Catalog(FlagSN,:);
 %[Im] =imProc.psf.constructPSF(Im,'constructPSF_cutoutsArgs',{'MedianCubeSumRange',[0.8 4]});
 %[Im] =imProc.sources.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
 %[Im] =ml.pipe.psfFitPhot(Im,'psfPhotCubeArgs',{'UseSourceNoise',false});
@@ -56,7 +78,8 @@ Im = imProc.sources.findMeasureSources(Im,'Threshold',Args.Threshold,'RemoveBadS
 Isort = (sort(RefTab(:,Args.ColNumMagRefTab)));
 MaxI = Isort(round(numel(Im.CatData.Catalog(:,1))));
 
-[NewX,NewY,PatternMat,Stats]= ml.kmt.match_kmt9k_Pattern(Im.CatData,RefTab,'Range',Args.Range,'MaxMag',MaxI,'XYCols',{'X','Y'},'Step',Args.Step);
+
+[NewX,NewY,PatternMat,Stats,LogStr]= ml.kmt.match_kmt9k_Pattern(Im.CatData,RefTab,'Range',Args.Range,'MaxMag',Args.MaxMagForFit,'XYCols',{'X','Y'},'Step',Args.Step);
 RefCatNew = RefTab;
 RefCatNew(:,[1,2]) =[NewX,NewY];
 

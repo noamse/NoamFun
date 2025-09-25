@@ -14,8 +14,8 @@ arguments
     Args.HistDistEdgesRotScale   = [10 600 300];
     Args.HistDistEdgesRot        = (12:3:100).';
     Args.HistRotEdges            = (-1:0.5:1);  % rotation or [min max] rotation that require to ?
-    Args.RangeX                  = [-16 16];
-    Args.RangeY                  = [-16 16];
+    Args.RangeX                  = [-100 100];
+    Args.RangeY                  = [-100 100];
     Args.StepX                   = 0.2;
     Args.StepY                   = 0.2;
     Args.Flip                    = [1 1];

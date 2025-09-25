@@ -2,12 +2,13 @@
 %EventNum = num2str(160949);
 EventNum = num2str(192630);
 % Directory to save the catalogs. 
-%TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25dist/kmt',EventNum, '/'];
-TargetPath = ['/home/noamse/KMT/data/AstCats/test/may25CTIO/kmt',EventNum, '/'];
+TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25dist/kmt',EventNum, '/']; % Paper version
+%TargetPath = ['/home/noamse/KMT/data/AstCats/test/may25CTIO/kmt',EventNum, '/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/feb25nodist/kmt',EventNum, '/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/sites/kmt',EventNum, '/saao/'];
 %TargetPath = ['/home/noamse/KMT/data/AstCats/test/kmt',EventNum, '/'];
 mkdir(TargetPath);
+% Telescope comparison: /data1/noamse/Weizmann Institute Dropbox/Noam Segev/astro/KMT_ML/data/CompareTelescopes/TelescopeComparison.m
 
 %% Read 'CTIO_I' image files from all years 
 Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*CTIO_I*/'];
@@ -17,6 +18,7 @@ Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*CTIO_I*/'
 %Imagebasedir = ['/data2/KMTNetGUEST/events_highpriority/',EventNum ,'/*SAAO_I*/'];
 %[DirCell,JD]= ml.util.generateDirCell('BaseDir',Imagebasedir,'Site','SAAO');
 refflag = contains(DirCell,'REF'); 
+RefIm = DirCell(refflag);
 DirCell = DirCell(~refflag);
 %FieldFlag = contains(DirCell,'BLG42'); 
 %DirCell = DirCell(FieldFlag);
@@ -24,7 +26,7 @@ DirCell = DirCell(~refflag);
 CCDSEC = [106,406,106,406];
 Set= ImRed.setParameterStruct(TargetPath,'CCDSEC_xd',CCDSEC(1),'CCDSEC_xu',CCDSEC(2),'CCDSEC_yd',CCDSEC(3),'CCDSEC_yu',CCDSEC(4),...
     'MaxRefMag',18.5,'FitRadius',3.5,'NRefMagBin',12,'FitWings',true,'HalfSize',12,...
-    'SNRforPSFConstruct',100,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',7,'MaxRefMagPattern',16.5,...
+    'SNRforPSFConstruct',100,'InerRadiusKernel',2.5,'FitRadiusKernel',5,'ReCalcBack',false,'Dmin_thresh',0,'MaxRefMagPattern',16.5,...
     'fitPSFKernelModel','mtd');
 Set.SaveFile = true;
 % Generate KMTNet reference catalog for the specific field and cutouts
@@ -37,6 +39,8 @@ Set.SaveFile = true;
 
 %% Run the photometry pipeline on all images. 
 % This step results is a directory 'TargetPath' with all of the catalogs.
+delete(gcp('nocreate'));
+parpool('local', 16);
  parfor Iep = 1:numel(DirCell)
      [PathIm] = ImRed.runPipe(DirCell{Iep},TargetPath);
      disp(Iep)
@@ -47,7 +51,7 @@ Set.SaveFile = true;
 % read catalogs
 [Obj,CelestialCoo,Matched]= ml.util.loadAstCatMatch(TargetPath);
 % Remove bad airmass and false fit
-FlagSeczAM = Obj.Data.secz(:,1)<1.6 ;
+FlagSeczAM = median(Obj.Data.secz,2,'omitnan')<1.6 ;
 %flagMag = Obj.medianFieldSource({'MAG_PSF'})<17.5;
 %Obj.Data=ml.util.flag_struct_field(Obj.Data,flagMag,'FlagByCol',true);
 %Matched.Catalog = Matched.Catalog(flagMag,:); 
@@ -58,31 +62,35 @@ Obj.Data.X(FlagPix) = nan; Obj.Data.Y(FlagPix) = nan;
 %Obj.Data.X = -Obj.Data.X;
 %%
 % Run before sysrem 
-[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',2,'ChromaicHighOrder',true);
+[IFsysB,MMSsysB]= ml.scripts.runIterDetrend(Obj.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',10,'NiterNoWeights',2);
 % sysrem 
-[ObjSysAfter,sysCorX,sysCorY] = ml.util.sysRemScriptPart(IFsysB,MMSsysB,'UseWeight',true,'NIter',3);
+[ObjSysAfter,sysCorX,sysCorY] = ml.util.sysRemScriptPart(IFsysB,MMSsysB,'UseWeight',true,'NIter',2);
 Xguess =median(ObjSysAfter.Data.X,'omitnan')'; Yguess =median(ObjSysAfter.Data.Y,'omitnan')';
 % Flag sources with all nans, rare but can happend
 FlagNan = ~(isnan(Xguess)|isnan(Yguess));
 ObjSysAfter.Data = ml.util.flag_struct_field(ObjSysAfter.Data,FlagNan  ,'FlagByCol',true);
 Matched.Catalog = Matched.Catalog(FlagNan,:);
 % Final run
-[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,'IF',IFsysB.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',4,'NiterNoWeights',2,'ChromaicHighOrder',true,'FinalStep',true);
+[IFsys,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,'IF',IFsysB.copy(),"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',true,'AnnualEffect',true,'NiterWeights',4,'NiterNoWeights',2,'FinalStep',true);
 %[IFsysContRat,MMSsys]= ml.scripts.runIterDetrend(ObjSysAfter,"CelestialCoo",CelestialCoo,'HALat',true,'UseWeights',true,'Plx',false,'PixPhase',false,'AnnualEffect',true,'NiterWeights',2,'NiterNoWeights',2,'ChromaicHighOrder',true,'ContaminatingFlux',ContRatio);
-M = IFsys.medianFieldSource({'MAG_PSF'});
-[RstdX,RstdY] = IFsys.calculateRstd;
-Rstd2D = sqrt(RstdX.^2 +RstdY.^2);
-[OutLiersFlagOriginal, ~] = ml.util.IterativeMovingMedian(Rstd2D, M);
-FlagMagZP = true(size(M));
-FlagMagZP(OutLiersFlagOriginal)=false;
-ZP = IFsys.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag','FlagSources',FlagMagZP);
-IFsys.applyZP(ZP,'ApplyToMagField','MAG_PSF');
-Obj.applyZP(ZP,'ApplyToMagField','MAG_PSF');
-ZP = IFsys.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag','FlagSources',FlagMagZP);
-Obj.applyZP(ZP,'ApplyToMagField','MAG_PSF');
-IFsys.applyZP(ZP,'ApplyToMagField','MAG_PSF');
-
-
+% M = IFsys.medianFieldSource({'MAG_PSF'});
+% [RstdX,RstdY] = IFsys.calculateRstd;
+% Rstd2D = sqrt(RstdX.^2 +RstdY.^2);
+% [OutLiersFlagOriginal, ~] = ml.util.IterativeMovingMedian(Rstd2D, M);
+% FlagMagZP = true(size(M));
+% FlagMagZP(OutLiersFlagOriginal)=false;
+% [MAGSYS,SysRemMAG]= timeSeries.detrend.sysrem(IFsys.Data.MAG_PSF - median(IFsys.Data.MAG_PSF,'omitnan'),1,'Niter',10,'ThreshDeltaS2',0.01);
+% sysCorMAG = zeros(size(SysRemMAG(end).A.* SysRemMAG(end).C));
+% Csys=zeros(size(SysRemMAG(end).C));
+% Asys = zeros(size(SysRemMAG(end).A));
+% for Isys = 2:numel(SysRemMAG)
+%     sysCorMAG = sysCorMAG+ SysRemMAG(Isys).A.* SysRemMAG(Isys).C;
+% end
+% IFsys.Data.MAG_PSF = IFsys.Data.MAG_PSF -sysCorMAG;
+% ZP = IFsys.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag','FlagSources',FlagMagZP);
+% 
+% 
+% 
 
 %% Run first iteration and than SYSREM 
 % IF = ml.scripts.runIterFit(Obj,"CelestialCoo",CelestialCoo,'NiterWeights',0,'NiterNoWeights',3,'HALat',false,'UseWeights',false,'Plx',false);
@@ -100,13 +108,14 @@ IFsys.applyZP(ZP,'ApplyToMagField','MAG_PSF');
 
 %%
 close all;
-%FLUX = IFobj.medianFieldSource({'FLUX_PSF'})
-%H = [ones(size(FLUX)),-2.5*log10(FLUX)];
-IFT = IFsys.copy();
+IFT = IFs(6).copy();
+FLUX = IFT.medianFieldSource({'FLUX_PSF'});
+H = [ones(size(FLUX)),-2.5*log10(FLUX)];
+
 load([TargetPath , 'RefCat.mat'])
 M = IFT.medianFieldSource({'MAG_PSF'});
-%zpfit = H(FLUX>0,:)\M(FLUX>0);
-%zp= zpfit(1);
+zpfit = H(FLUX>0,:)\M(FLUX>0);
+zp= zpfit(1);
 
 zp =28.469;
 FluxRef = 10.^(0.4*(zp - RefCat.getCol('I')));
@@ -116,19 +125,19 @@ DistanceMatchedRef(DistanceMatchedRef==0)=Inf;
 FluxDist = (FluxRef./FluxMatch')./DistanceMatchedRef.^2;
 ContRatio = max(FluxDist)';
 MinDistance = min(DistanceMatchedRef);
-% try nn in contflux 
-%[MinDistance,IminD] = min(DistanceMatchedRef);
-%ContRatio = (FluxDist(IminD))';
-%FlagMagPlot = M<18.5;
-% [RstdX,RstdY,M] = IFobj.plotResRMS;
+
+[MinDistance,IminD] = min(DistanceMatchedRef);
+ContRatio = (FluxDist(IminD))';
+FlagMagPlot = M<18.5;
+[RstdX,RstdY,M] = IFT.plotResRMS;
 [RstdX,RstdY] = IFT.calculateRstd;
  Rstd2D  = sqrt(RstdX.^2 +RstdY.^2);
  [OutLiersFlagOriginal, MovingMedian] = ml.util.IterativeMovingMedian(Rstd2D, M);
 
 scatter(M,Rstd2D,6000./(MinDistance'),log10(ContRatio ),'.')
-%scatter(M,Rstd2D,300,[0.3,0.1,0.7],'.')
+scatter(M,Rstd2D,300,[0.3,0.1,0.7],'.')
 hold on;
-scatter(M(OutLiersFlagOriginal),Rstd2D(OutLiersFlagOriginal),6000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
+scatter(M(OutLiersFlagOriginal),Rstd2D(OutLiersFlagOriginal),10000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
 %scatter(M(OutLiersFlagOriginal),Rstd2D(OutLiersFlagOriginal),300,[0.7,0.4,0.1],'*')
 set(gca,'ylim',[2,100]);
 set(gca,'yscale','log');
@@ -136,30 +145,34 @@ yticks([5,10,20,50])
 xticks([14,15,16,17,18,19])
 ylabel('rms(Residuals) (2D) [mas]','Interpreter','latex')
 xlabel('I [mag]','Interpreter','latex');
-%cb = colorbar;
-%caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
-%ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
-%colormap('turbo');
+cb = colorbar;
+caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
+ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
+colormap('turbo');
 
 figure; 
-%scatter(M,RstdY,6000./(MinDistance'),log10(ContRatio ),'.')
-scatter(M,RstdY,300,[0.3,0.1,0.7],'.')
+scatter(M,RstdY,6000./(MinDistance'),log10(ContRatio ),'.')
+
+%scatter(M,RstdY,300,[0.3,0.1,0.7],'.')
 hold on;
 %scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),6000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
-scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),300,[0.7,0.4,0.1],'*')
+Flag = MinDistance<10;
+%scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),6000./(MinDistance(OutLiersFlagOriginal)'),log10(ContRatio(OutLiersFlagOriginal)),'*')
+scatter(M(Flag),RstdY(Flag),6000./(MinDistance(Flag)'),log10(ContRatio(Flag)),'*');
+%scatter(M(OutLiersFlagOriginal),RstdY(OutLiersFlagOriginal),300,[0.7,0.4,0.1],'*')
 
-%hold on;
-%scatter(M,RstdY,3000./(MinDistance'),log10(ContRatio),'*')
+hold on;
+scatter(M,RstdY,3000./(MinDistance'),log10(ContRatio),'*')
 set(gca,'ylim',[2,100]);
 set(gca,'yscale','log');
 yticks([5,10,20,50])
 xticks([14,15,16,17,18,19])
 ylabel('rms(y-axis Residuals) (1D) [mas]','Interpreter','latex')
 xlabel('I [mag]','Interpreter','latex');
-%cb = colorbar;
-%caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
-%ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
-%colormap('turbo');
+cb = colorbar;
+caxis([min(log10(ContRatio)),prctile(log10(ContRatio ),80)]);
+ylabel(cb,'$log_{10}(f_{\star}/f_{s}/d_{\star}^2)$','interpreter','latex','FontSize',17)
+colormap('turbo');
 
 flagContRatio = ContRatio<0.1 & MinDistance'>4;
 

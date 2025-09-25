@@ -23,6 +23,7 @@ arguments
     Args.fitProperMotionLogical = true;
     Args.UseRefCat  =false;
     Args.RemovePhotometricOutliers = false;
+    Args.SysRemPhotometryArgs = {'ThreshDeltaS2',1,'Niter',10};
 end
 
 JD= [MatchedCat.JD];
@@ -43,7 +44,10 @@ Obj.Data.MAGERR = 0.01*ones(size(Obj.Data.MAG_PSF));
 %ZP =lcUtil.zp_meddiff(Obj,'MagField','MAG_PSF');
 %Obj.applyZP(ZP.FitZP','ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
 ZP = Obj.fitRefZP('ColNameMag','MAG_PSF','ColNameRefMag','RefMag',Args.fitRefZPArgs{:});
+
 Obj.applyZP(ZP,'ApplyToMagField',Args.ColNameMag,Args.applyZPArgs{:});
+[CorrectedMag] = SysRemPhotometry(Obj,Args.SysRemPhotometryArgs{:});
+Obj.Data.(Args.ColNameMag)=CorrectedMag;
 Obj.ZP = ZP;
 if Args.RemovePhotometricOutliers
     [Out]  = photometryOutliers(Obj,Args.photometryOutliersArgs{:});

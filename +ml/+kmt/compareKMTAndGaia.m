@@ -1,0 +1,450 @@
+function [T,KMTRefCat,Pars,conditions] = compareKMTAndGaia(IFgaia,Matched,EventNumStr,Args)
+arguments
+    IFgaia = IFsys.copy();
+    Matched = AstroCatalog;
+    EventNumStr = num2str(192630);
+    Args.GaiaCatMatchedFile= [];
+    Args.RstdTopPrc = 33;
+end
+close all;
+if isempty(Args.GaiaCatMatchedFile)
+    %GaiaCatMatchedFile= ['/home/noamse/astro/KMT_ML/data/gaiacats/',EventNumStr ,'_gaia_full.csv'];
+    GaiaCatMatchedFile= ['/home/noamse/astro/KMT_ML/data/gaiacats/',EventNumStr ,'_gaia.csv'];
+else
+    GaiaCatMatchedFile = Args.GaiaCatMatchedFile;
+end
+%GaiaCatMatchedFile = ['/home/noamse/astro/KMT_ML/data/gaiacats/',EventNum ,'_gaia.csv'];
+%GaiaCatMatchedFile = ['/home/noamse/astro/KMT_ML/data/gaiacats/192630_gaia_I19.csv'];
+B=readtable(GaiaCatMatchedFile);
+ 
+
+
+MaxRStd = 20; MaxMag = 18;
+RstdTopPrc = Args.RstdTopPrc;
+ 
+%[RstdX,RstdY]  = IFgaia.plotResRMS;
+[RstdX,RstdY] = IFgaia.calculateRstd;
+RstD = sqrt(RstdX.^2 + RstdY.^2);
+M = IFgaia.medianFieldSource({'MAG_PSF'});
+
+KMTRefCat = Matched.copy();
+
+% !!!! WORKS WITH topcat !!!!
+% [~,posgaia] = ismember(KMTRefCat.getCol({'XpatchPos','YpatchPos'}),table2array(B(:,{'XpatchPos','YpatchPos'})),'rows');
+% [~,poskmt] = ismember(table2array(B(:,{'XpatchPos','YpatchPos'})),KMTRefCat.getCol({'XpatchPos','YpatchPos'}),'rows');
+% poskmt(poskmt==0) = [];
+% posgaia(posgaia==0) = [];
+% 
+% %KMTRefSortInd = (1:numel(KMTRefCat.getCol({'I'})))';
+% T =B(posgaia,:);
+% %KMTRefSortInd = poskmt;
+% poskmt = true(size(poskmt));
+% KMTRefCat.Catalog = KMTRefCat.Catalog(poskmt,:);
+% Pars = IFgaia.ParS(:,poskmt);
+% MagPSF = IFgaia.medianFieldSource({'MAG_PSF'});
+% MagPSF  = MagPSF(poskmt);
+% RstDplot = RstD(poskmt);
+% RstDplotY = RstdY(poskmt);
+% RstDplotX = RstdX(poskmt);
+% M= M(poskmt);
+% 
+% !!!!! WORKS WITH catsHTM !!!!!
+% Cross match Gaia-KMT catalogs. 
+%[KMTGAIACat, SelObj, ResInd, CatH] =imProc.match.match_catsHTM(Matched.copy(),'GAIADR3','Radius',0.1);
+[GaiaMatchedCat, ResInd, CatH] = imProc.match.returnMatched_catsHTM(Matched.copy(),'GAIADR3','ApplyPM',false);
+Tgaia= GaiaMatchedCat.Table;
+
+Tgaia = renamevars(Tgaia,{'PMRA','PMDec','ErrPMRA','ErrPMDec'}, {'pmra','pmdec','pmra_error','pmdec_error'});
+KMTTab = Matched.Table;
+KMTTab = removevars(KMTTab , {'RA', 'Dec'});
+T = [Tgaia,KMTTab];
+idxKMT = true(size(KMTTab(:,1)));
+%idxKMT = ~isnan(ResInd.Obj2_IndInObj1(ResInd.Obj2_NmatchObj1==1));
+% Subset Gaia table and align both catalogs
+%T = B(idxGaia, :);                                % Gaia subset for matched sources
+%KMTRefCat.Catalog = KMTRefCat.Catalog(idxKMT, :);% KMT subset for matched sources
+Pars = IFgaia.ParS(:, idxKMT);                   % Parameters of matched KMT sources
+
+%Filter accompanying vectors
+MagPSF = IFgaia.medianFieldSource({'MAG_PSF'});
+MagPSF = MagPSF(idxKMT);
+RstDplot = RstD(idxKMT);
+RstDplotY = RstdY(idxKMT);
+RstDplotX = RstdX(idxKMT);
+M = M(idxKMT);
+%OutLiersRMSvsMag =false(size(OutLiersRMSvsMag ));
+OutLiersRMSvsMag = ml.util.iterativeOutlierDetection(RstDplot,M,10,'MoveMedianStep',0.5);
+%
+%TopPrcVal= prctile(RstD(~OutLiersRMSvsMag) ,RstdTopPrc);
+TopPrcVal= prctile(RstD ,RstdTopPrc);
+%Mplot  =M(poskmt);
+Mplot  =M;
+
+H = [ones(size(T.phot_rp_mean_mag)),T.phot_rp_mean_mag];
+FlagMagComp = ~isnan(T.phot_rp_mean_mag);
+MagCompPar = H(FlagMagComp,:)\MagPSF(FlagMagComp);
+FlagOutMagComp = ~(isoutlier(H* MagCompPar- MagPSF));
+
+
+
+%flagruwe = T.ruwe<3 & T.I<MaxMag&RstDplot <TopPrcVal&FlagOutMagComp & ~OutLiersRMSvsMag;%& flagContRatio(poskmt);% & abs(T.parallax)./T.parallax_error<1;%& T.parallax<0;
+flagruwe = T.I<MaxMag&RstDplot <TopPrcVal&FlagOutMagComp & ~OutLiersRMSvsMag;%& flagContRatio(poskmt);% & abs(T.parallax)./T.parallax_error<1;%& T.parallax<0;
+%T.phot_g_mean_flux_over_error>500
+
+
+DeltaPMRA= Pars(3,flagruwe)'.*400+ T.pmra(flagruwe);
+DeltaPMRA = DeltaPMRA - -median(DeltaPMRA);
+ErrDeltaPMRA = T.pmra_error(flagruwe );
+
+DeltaPMDec = Pars(4,flagruwe)'.*400- T.pmdec(flagruwe);
+DeltaPMDec = DeltaPMDec  -median(DeltaPMDec );
+ErrDeltaPMDec = T.pmdec_error(flagruwe );
+FlagIsOut = ~(isoutlier(DeltaPMRA,2)|isoutlier(DeltaPMDec,2));
+
+
+flagruwe(flagruwe) = FlagIsOut ;
+DeltaPMRA= Pars(3,flagruwe)'.*400+ T.pmra(flagruwe) ;
+%DeltaPMRA = DeltaPMRA - -median(DeltaPMRA);
+ErrDeltaPMRA = T.pmra_error(flagruwe );
+
+DeltaPMDec = Pars(4,flagruwe)'.*400- T.pmdec(flagruwe);
+%DeltaPMDec = DeltaPMDec  -median(DeltaPMDec );
+ErrDeltaPMDec = T.pmdec_error(flagruwe );
+
+figure;
+%M = Matched.getCol('I');
+
+semilogy(M,RstDplotY,'.','Color',[0.4,0.1,0.3],'MarkerSize',13);
+hold on;
+semilogy(Mplot(flagruwe),RstDplotY(flagruwe),'*','MarkerSize',13);
+xlabel('I [mag]','interpreter','latex')
+ylabel('rms(y-axis Resiauls ) (1D) [mas]','interpreter','latex')
+%set(gca,'YLim',[5,100]);
+yticks([5,10,20,50])
+
+figure;
+%M = Matched.getCol('I');
+semilogy(M,RstDplot,'.','Color',[0.4,0.1,0.3],'MarkerSize',13);
+hold on;
+semilogy(Mplot(flagruwe),RstDplot(flagruwe),'*','MarkerSize',13);
+xlabel('I [mag]','interpreter','latex')
+ylabel('rms(Resiauls ) (2D) [mas]','interpreter','latex')
+%set(gca,'YLim',[5,100]);
+yticks([5,10,20,50])
+
+
+figure; 
+plot(T.RA(flagruwe)*180/pi,T.pmdec(flagruwe) - Pars(4,flagruwe)'*400,'.','MarkerSize',12);
+xlabel('RA [deg]');ylabel('$\Delta \mu_\delta$ [mas/yr]')
+
+figure; 
+plot(T.Dec(flagruwe),T.pmra(flagruwe) + Pars(3,flagruwe)'*400,'.');
+xlabel('RA [deg]');ylabel('$\Delta \mu_\alpha$')
+
+
+Hrob = [Pars(1,:)',Pars(2,:)',Pars(3,:)',Pars(4,:)'];
+Hra = [ones(size(Hrob(:,1))),Hrob];
+Hdec = [ones(size(Hrob(:,1))),Hrob];
+ParsDPMRA = robustfit(Hrob(flagruwe,:) ,T.pmra(flagruwe));
+ParsDPMDec = robustfit(Hrob(flagruwe,:) ,T.pmdec(flagruwe));
+pmraKMT = Hra*ParsDPMRA;
+pmdecKMT = Hdec*ParsDPMDec;
+DeltaPMRA = T.pmra -pmraKMT;
+DeltaPMDec = T.pmdec -pmdecKMT;
+%DeltaPMDecCorrected = DeltaPMDec - HySelected*ParsDPMDec;
+%DeltaPMRACorrected = DeltaPMRA - HxSelected*ParsDPMRA;
+%FlagIsOut = ~(isoutlier(DeltaPMRACorrected,2)|isoutlier(DeltaPMDecCorrected,2));
+%ChiDecCorr = (DeltaPMDecCorrected(FlagIsOut)./ErrDeltaPMDec(FlagIsOut)).^2;
+%ChiRACorr = (DeltaPMRACorrected(FlagIsOut)./ErrDeltaPMRA(FlagIsOut)).^2;
+
+%disp(['ChiDec = ' num2str(sum(ChiDecCorr)), ',  ChiRA = ' num2str(sum(ChiRACorr)),  ' IsOut = ' num2str(sum(~FlagIsOut)) '/' num2str(numel(FlagIsOut))])
+%disp (['Corrected -- std dec= ' num2str(std(DeltaPMDecCorrected(FlagIsOut)))...
+%    , ',   rstd dec= ' , num2str(tools.math.stat.rstd(DeltaPMDecCorrected(FlagIsOut))),...
+%' std ra= ' num2str(std(DeltaPMRACorrected(FlagIsOut)))...
+%    , ',   rstd ra= ' , num2str(tools.math.stat.rstd(DeltaPMRACorrected(FlagIsOut)))])
+% figure; 
+% scatter(T.RA(flagruwe),T.Dec(flagruwe),[],DeltaPMRA(flagruwe),'filled');
+% colormap('turbo');
+% cb = colorbar;
+% ylabel(cb,'\Delta \mu_\alpha');
+% xlabel('RA [deg]');ylabel('Dec [deg]')
+% figure; 
+% scatter(T.RA(flagruwe),T.Dec(flagruwe),[],DeltaPMDec(flagruwe),'filled');
+% colormap('turbo');
+% cb = colorbar;
+% xlabel('RA [deg]');ylabel('Dec [deg]')
+% ylabel(cb,'\Delta \mu_\delta');
+% 
+% figure; 
+% plot(T.Dec(flagruwe),DeltaPMRA(flagruwe),'.','MarkerSize',13)
+% hold on;
+% plot(T.Dec(flagruwe),HxSelected*ParsDPMRA)
+% scatter(T.Dec(flagruwe),DeltaPMRA(flagruwe),[],T.X(flagruwe),'filled');
+% colormap('turbo');
+% colorbar;
+
+% xlabel('Dec [deg]')
+% ylabel('$\Delta \mu \alpha$ [mas/yr]','Interpreter','latex')
+% figure; 
+% %plot(T.RA(flagruwe),DeltaPMRA,'.','MarkerSize',13)
+% hold on;
+% %plot(T.RA(flagruwe),HxSelected*ParsDPMRA)
+% %scatter(T.RA(flagruwe),DeltaPMRA,[],T.Y(flagruwe),'filled');
+% %scatter(T.RA(flagruwe),DeltaPMRA,'filled');
+% plot(T.RA(flagruwe),DeltaPMRA(flagruwe),'.','MarkerSize',13)
+% %colormap('turbo');
+% %colorbar;
+% xlabel('RA [deg]')
+% ylabel('$\Delta \mu \alpha$ [mas/yr]','Interpreter','latex')
+% 
+% figure; 
+% plot(T.Dec(flagruwe),DeltaPMRA(flagruwe),'.','MarkerSize',13)
+% %hold on;
+% %plot(T.RA(flagruwe),HySelected*ParsDPMDec)
+% xlabel('Dec [deg]')
+% ylabel('$\Delta \mu \delta$ [mas/yr]','Interpreter','latex')
+% 
+% 
+% figure; 
+% plot(T.RA(flagruwe),DeltaPMDec(flagruwe),'.','MarkerSize',13)
+% %hold on;
+% %plot(T.RA(flagruwe),HySelected*ParsDPMDec)
+% xlabel('RA [deg]')
+% ylabel('$\Delta \mu \delta$ [mas/yr]','Interpreter','latex')
+% 
+% figure; 
+% plot(T.Dec(flagruwe),DeltaPMDec(flagruwe),'.','MarkerSize',13)
+% %hold on;
+% %plot(T.RA(flagruwe),HySelected*ParsDPMDec)
+% xlabel('Dec [deg]')
+% ylabel('$\Delta \mu \delta$ [mas/yr]','Interpreter','latex')
+% 
+
+
+
+
+% Delta is KMT-Gaia
+
+%flagplot= false(size(flagruwe));
+%flagplot(flagruwe) = FlagIsOut;
+%Hx = [ones(size(T.RA)),T.RA,T.Dec,T.pmra,T.pmdec];
+%Hy = [ones(size(T.RA)),T.RA,T.Dec,T.pmra,T.pmdec];
+flagPmErr = sqrt(T.pmra_error.^2 + T.pmdec_error.^2) <1 ;%& T.ruwe<1.3;% & FlagOutMagComp;%& T.parallax>0;
+flagMag= MagPSF<18.5 ;%& T.phot_g_mean_flux_over_error>1000;
+% ------------------------------------------------------------------------
+  conditions = {RstDplot < TopPrcVal& flagPmErr & ~OutLiersRMSvsMag& flagMag, RstDplot >= TopPrcVal& RstDplot < 50& flagPmErr& flagMag&~OutLiersRMSvsMag};
+labels = {['rms $< $ ',num2str(round(TopPrcVal))], [num2str(round(TopPrcVal)),' $\leq$ rms $<$ 40']};
+  colors =[0.7,0.3,0.4;0.3, 0.6, 0.4];
+%conditions = {RstDplot < 12& T.V_I>1.3 & flagPmErr& flagMag , RstDplot < 12& T.V_I<1.3 & flagPmErr& flagMag};
+%labels = {'$V-I>1.3$','$V-I < 1.3$' };
+%colors =[0.8, 0.4, 0.3;0.3,0.3,0.8];
+% ------------------------------------------------------------------------
+%
+figure; % plot histogram of "\Chi^2"
+
+% h= histogram(abs(DeltaPMRA(conditions{1})-median(DeltaPMRA(conditions{1})))./T.pmra_error(conditions{1}),'BinEdges',BinEdges,'FaceColor',colors(1,:),'Normalization','probability');
+% hold on;
+% histogram(abs(DeltaPMRA(conditions{2})-median(DeltaPMRA(conditions{2})))./T.pmra_error(conditions{2}),'BinEdges',h.BinEdges,'FaceColor',colors(2,:),'Normalization','probability');
+% xlabel('$\Delta \mu_\alpha$ / $\mu_\alpha$ Gaia error ');
+% legend(labels);
+% figure;
+% h=histogram(abs(DeltaPMDec(conditions{1})-median(DeltaPMDec(conditions{1})))./T.pmdec_error(conditions{1}),'BinEdges',BinEdges,'FaceColor',colors(1,:),'Normalization','probability');
+% hold on;
+% histogram(abs(DeltaPMDec(conditions{2})-median(DeltaPMDec(conditions{2})))./T.pmdec_error(conditions{2}),'BinEdges',h.BinEdges,'FaceColor',colors(2,:),'Normalization','probability');
+% xlabel('$\Delta \mu_\delta$ / $\mu_\delta$ Gaia error');
+% legend(labels)
+% figure; 
+  ut.plotHistogramSegment((DeltaPMDec./T.pmdec_error)...
+    ,RstDplot,'conditions',conditions,...
+    'Xlabel','$\Delta \mu_\delta$ / $\mu_\delta$ Gaia error','colors',colors ,'labels',labels,...
+    'NewFigure',false,'outlierMethod','median','outlierParams',3,'StepSize',1,'StdInLegend',true);
+figure;
+ut.plotHistogramSegment((DeltaPMRA./T.pmra_error)...
+    ,RstDplot,'conditions',conditions,...
+    'Xlabel','$\Delta \mu_\alpha$ / $\mu_\alpha$ Gaia error','colors',colors ,'labels',labels,...
+    'NewFigure',false,'outlierMethod','median','outlierParams',3,'StepSize',1,'StdInLegend',true);
+
+% Top-left: $\mu_\alpha$ KMT vs Gaia scatter/errorbar plot
+f=figure;
+%subplot(2, 2, 1);
+% errorbar(pmraKMT(conditions{1}), T.pmra(conditions{1}),...
+%     T.pmra_error(conditions{1}), '.', 'Color', colors(1,:),'MarkerSize',10);
+% hold on;
+% errorbar(pmraKMT(conditions{2}), T.pmra(conditions{2}),...
+%     T.pmra_error(conditions{2}), '.', 'Color', colors(2,:),'MarkerSize',10);
+% xlabel('$\mu_\alpha$ KMT [mas/yr]', 'Interpreter', 'latex');
+% ylabel('$\mu_\alpha$ Gaia [mas/yr]', 'Interpreter', 'latex');
+%set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+% Determine limits
+% MinMaxPMalpha = [floor(min([pmraKMT(:); T.pmra(:)]))-1, ...
+%                   ceil(max([pmraKMT(:); T.pmra(:)]))]+1;
+% tickStep = 2;  % Or any other step size you prefer
+% tickMin = floor(min(MinMaxPMalpha) / tickStep) * tickStep;
+% tickMax = ceil(max(MinMaxPMalpha) / tickStep) * tickStep;
+% ticks = tickMin:tickStep:tickMax;
+% 
+% set(gca, 'XTick', ticks, 'YTick', ticks);
+
+
+ 
+% figure;
+% errorbar(pmdecKMT(conditions{1}), T.pmdec(conditions{1}),...
+%     T.pmdec_error(conditions{1}), '.', 'Color', colors(1,:),'MarkerSize',10);
+% hold on;
+% errorbar(pmdecKMT(conditions{2}), T.pmdec(conditions{2}),...
+%     T.pmdec_error(conditions{2}), '.', 'Color', colors(2,:),'MarkerSize',10);
+% xlabel('$\mu_\delta$ KMT [mas/yr]', 'Interpreter', 'latex');
+% ylabel('$\mu_\delta$ Gaia [mas/yr]', 'Interpreter', 'latex');
+% set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+% MinMaxPMdelta = [floor(min([pmdecKMT(:); T.pmdec(:)]))-1, ...
+%                   ceil(max([pmdecKMT(:); T.pmdec(:)]))]+1;
+% set(gca,'Xlim',MinMaxPMdelta)
+% set(gca,'Ylim',MinMaxPMdelta)
+% tickStep = 2;  % Or any other step size you prefer
+% tickMin = floor(min(MinMaxPMdelta) / tickStep) * tickStep;
+% tickMax = ceil(max(MinMaxPMdelta) / tickStep) * tickStep;
+% ticks = tickMin:tickStep:tickMax;
+
+%set(gca, 'XTick', ticks, 'YTick', ticks);
+
+%title('$\mu_\delta$ KMT vs Gaia', 'Interpreter', 'latex');
+
+% Bottom-left: $\mu_\alpha$ KMT - Gaia histogram
+%subplot(2, 2, 3);
+
+%histogram(Pars(3,flagplot)'.*400 - Hx(FlagIsOut,:)*ParsDPMRA + T.pmra(flagplot), 10, 'FaceColor', [0.2, 0.5, 0.3]);
+%xlabel('$\mu_\alpha$ KMT - Gaia [mas/yr]', 'Interpreter', 'latex');
+
+% Andy ask:
+figure;
+
+[~,StdPerConPMRA,OutliersAlphaHist]=  ut.plotHistogramSegment(DeltaPMRA,RstDplot,'conditions',conditions,...
+    'Xlabel','$\mu_\alpha \,\, \mathrm{ KMT - Gaia [mas/yr]}$','colors',colors ,'labels',labels,...
+    'NewFigure',false,'outlierMethod','quartiles','outlierParams',[15,85]);
+ylabel('Counts', 'Interpreter', 'latex');
+set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  
+disp('StdPMRA');
+disp(StdPerConPMRA);
+% Set figure size
+%title('$\mu_\alpha$ Histogram', 'Interpreter', 'latex');
+
+
+
+%subplot(2, 2, 4);
+figure;
+%histogram(Pars(4,flagplot)'.*400 - Hy(FlagIsOut,:)*ParsDPMDec - T.pmdec(flagplot), 10, 'FaceColor', [0.2, 0.5, 0.3]);
+%xlabel('$\mu_\delta$ KMT - Gaia [mas/yr]', 'Interpreter', 'latex');
+ [~,StdPerConPMDec,OutliersDeltaHist]=ut.plotHistogramSegment(DeltaPMDec...
+    ,RstDplot,'conditions',conditions,...
+    'Xlabel','$\mu_\delta \,\, \mathrm{ KMT - Gaia [mas/yr]}$','colors',colors ,'labels',labels,...
+    'NewFigure',false,'outlierMethod','quartiles','outlierParams',[15,85]);
+
+ylabel('Counts', 'Interpreter', 'latex');
+set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+
+disp('StdPMDec');
+disp(StdPerConPMDec);
+
+
+figure ; 
+errorbar(T.pmdec(conditions{1}&~OutliersDeltaHist),pmdecKMT(conditions{1}&~OutliersDeltaHist)-T.pmdec(conditions{1}&~OutliersDeltaHist),...
+    T.pmdec_error(conditions{1}&~OutliersDeltaHist), '.', 'Color', colors(1,:),'MarkerSize',10);
+hold on;
+errorbar(T.pmdec(conditions{2}&~OutliersDeltaHist),pmdecKMT(conditions{2}&~OutliersDeltaHist)-T.pmdec(conditions{2}&~OutliersDeltaHist),...
+    T.pmdec_error(conditions{2}&~OutliersDeltaHist), '.', 'Color', colors(2,:),'MarkerSize',10);
+xlabel('$\mu_\delta$ Gaia [mas/yr]', 'Interpreter', 'latex');
+ylabel('$\Delta\mu_\delta$ KMT-Gaia [mas/yr]', 'Interpreter', 'latex');
+set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+set(gca,'Ylim',[-2,2])
+grid on;
+figure ; 
+errorbar(T.pmra(conditions{1}&~OutliersAlphaHist),pmraKMT(conditions{1}&~OutliersAlphaHist)-T.pmra(conditions{1}&~OutliersAlphaHist),...
+    T.pmra_error(conditions{1}&~OutliersAlphaHist), '.', 'Color', colors(1,:),'MarkerSize',10);
+hold on;
+errorbar(T.pmra(conditions{2}&~OutliersAlphaHist),pmraKMT(conditions{2}&~OutliersAlphaHist)-T.pmra(conditions{2}&~OutliersAlphaHist),...
+    T.pmra_error(conditions{2}&~OutliersAlphaHist), '.', 'Color', colors(2,:),'MarkerSize',10);
+xlabel('$\mu_\alpha$ Gaia [mas/yr]', 'Interpreter', 'latex');
+ylabel('$\Delta\mu_\alpha$ KMT-Gaia [mas/yr]', 'Interpreter', 'latex');
+set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+set(gca,'Ylim',[-2,2])
+grid on;
+% cond1 = conditions{1};
+% cond2 = conditions{2};
+% figure;
+% plot(T.RA(cond1(flagruwe)), T.Dec(cond1(flagruwe)),...
+%     '.', 'Color', colors(1,:),'MarkerSize',10);
+% hold on;
+% plot(T.RA(cond2(flagruwe)), T.Dec(cond2(flagruwe)),...
+%      '.', 'Color', colors(2,:),'MarkerSize',10);
+% xlabel('$\alpha$ [deg]', 'Interpreter', 'latex');
+% ylabel('$\delta$ [deg]', 'Interpreter', 'latex');
+% set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+% 
+% exportgraphics(gcf,[pathOverleaf,'PMX_even_vs_odd_17K0103_segment.eps']);
+% 
+ figure; 
+ PLX=B.parallax;
+ PLX(B.parallax>1)  = 1;
+%scatter(B.bp_rp,B.phot_g_mean_mag,3.^(PLX+3),PLX,'filled')
+scatter(B.bp_rp(PLX>=0),B.phot_g_mean_mag(PLX>=0),40,PLX(PLX>=0),'filled')
+hold on;
+scatter(B.bp_rp(PLX<0),B.phot_g_mean_mag(PLX<0),40,PLX(PLX<0),'^')
+%scatter(B.V_I,B.I,50,B.parallax,'filled')
+xlabel('Bp - Rp [mag]')
+ylabel('G [mag]')
+set(gca,'YDir','reverse');
+cb= colorbar;
+caxis([0 1]);
+ylabel(cb, '$\bar{\pi}$ [mas]', 'Interpreter', 'latex'); % Set the label using LaTeX interpreter
+%set(gca, 'Position', [0.13 0.12953 0.775 0.79547]);  % Set figure size
+
+figure;
+plot(T.I,T.phot_rp_mean_mag,'.');
+xlabel('I')
+ylabel('Rp Gaia')
+if IFgaia.Plx
+    figure; 
+    %errorbar(Pars(5,flagruwe )'*400,T.parallax(flagruwe ),T.parallax_error(flagruwe ),'.');
+    errorbar(Pars(5,conditions{1} )'*400,T.parallax(conditions{1} ),T.parallax_error(conditions{1}),'.','DisplayName',labels{1});
+    %hold on;
+    %errorbar(Pars(5,conditions{2} )'*400,T.parallax(conditions{2} ),T.parallax_error(conditions{2}),'.','DisplayName',labels{2});
+    xlabel('$\omega$ KMT [mas]','interpreter','latex')
+    ylabel('$\omega$ Gaia [mas]','interpreter','latex')
+    %legend();
+    figure;
+    scatter(Pars(5,conditions{1} )'*400,T.parallax(conditions{1} ),[],T.bp_rp(conditions{1} ),'filled');
+    hold on;
+    MaxPLX = max([Pars(5,conditions{1} )'*400,T.parallax(conditions{1} )]);
+    MinPLX = min([Pars(5,conditions{1} )'*400,T.parallax(conditions{1} )]);
+    plot([MinPLX,MaxPLX],[MinPLX,MaxPLX])
+    cb= colorbar;
+    xlabel('$\omega$ KMT [mas]','interpreter','latex')
+    ylabel('$\omega$ Gaia [mas]','interpreter','latex')
+    ylabel(cb,'Bp-Rp','FontSize',16,'Rotation',270)
+    figure ; 
+    plot(T.V_I(conditions{1} ),Pars(5,conditions{1} )'*400,'.');
+    ylabel('$\omega$ KMT','interpreter','latex')
+    xlabel('V-I','interpreter','latex')
+    figure; 
+
+    plot(Pars(5,conditions{1})'*400,Pars(4,conditions{1})'.*400- T.pmdec(conditions{1}),'.')
+    xlabel('\omega');ylabel('\Delta \mu_\delta');
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
