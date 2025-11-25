@@ -60,10 +60,11 @@ function runEventBatch(FieldNum,Args)
         try
             FilePath = ml.scripts.runAstrometryField(FieldNum, 'Field', fieldName, 'TargetPath', [fieldDir '/']);
             disp(FilePath);
+            fprintf("   ✅ Astrometry result file: %s\n", FilePath);
         catch 
             fprintf(" Astrometry Failed : %d\n", FieldNum);
             ut.sendTelegram(['Failed to run astrometry on Field: ' fieldDir , 'Event ' num2str(FieldNum), '  ' num2str(i) ' out of ' num2str(NumFields)])
-            fprintf("   ✅ Astrometry result file: %s\n", FilePath);
+            
         end
 
         

@@ -409,8 +409,8 @@ conditionsC = {cond1 & V_m_I<Ccut, cond1 & V_m_I>Ccut};%,conditions{2}};
 % raKMT(~(V_m_I<Ccut)) = Hra(~(V_m_I<Ccut),:)*ParsDRA2;
 % decKMT(V_m_I<Ccut) = Hdec(V_m_I<Ccut,:)*ParsDDec1;
 % decKMT(~(V_m_I<Ccut)) = Hdec(~(V_m_I<Ccut),:)*ParsDDec2;
-% raKMT = Hra*ParsDRA;
-% decKMT = Hdec*ParsDDec;
+%raKMT = Hra*ParsDRA;
+%decKMT = Hdec*ParsDDec;
 
 % DeltaRA =(RAGaia-raKMT)*1000*3600*180/pi*cos(median(DecGaia,'omitnan'));
 % DeltaDec  = (DecGaia-decKMT)*1000*3600*180/pi;
