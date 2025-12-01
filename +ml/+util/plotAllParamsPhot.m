@@ -8,8 +8,10 @@
 
 
 
-csvPath  = '/home/noamse/KMT/data/test/AstrometryField_Inspect.csv';  % <- set your CSV
-jsonDir  = '/home/noamse/KMT/data/Experiments/Photometry_v2/all_params_photo_aux_variants';  % directory containing kmtXXXX_YY__params_photo-aux_WIS-1_best.json
+%csvPath  = '/home/noamse/KMT/data/test/AstrometryField_Inspect.csv';  % <- set your CSV
+csvPath  = '/home/noamse/KMT/data/test/AstrometryField_Inspect_A.csv';
+%jsonDir  = '/home/noamse/KMT/data/Experiments/Photometry_v2/all_params_photo_aux_variants';  % directory containing kmtXXXX_YY__params_photo-aux_WIS-1_best.json
+jsonDir ='~/KMT/data/Experiments/Comb_A_v1/all_params_photo_aux_variants';
 magCut   = 0;   % if you still want mag0 split; set [] to disable
 
 % ---------- read CSV ----------
@@ -211,7 +213,8 @@ end
 
 %% Compare chi2 between *_best.json and *_std.json per event
 
-dataDir = '/home/noamse/KMT/data/Experiments/Photometry_v2/all_params_photo_aux_variants/';  % or set your directory explicitly
+%dataDir = '/home/noamse/KMT/data/Experiments/Photometry_v2/all_params_photo_aux_variants/';  % or set your directory explicitly
+dataDir = jsonDir;
 bestFiles = dir(fullfile(dataDir, '*_best.json'));
 stdFiles  = dir(fullfile(dataDir, '*_std.json'));
 
