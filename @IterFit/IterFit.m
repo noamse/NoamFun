@@ -182,6 +182,7 @@ classdef  IterFit< MMS
         [Bx,By] =plotSource(IF,IndSrc)
         [RStdPrcX,RStdPrcY,M,RStdPrc] = plotResRMS(IF,Args)
         [Chi2X,Chi2Y,NbinX,NbinY]= chi2Tests(IF,Args)
+        Out = plotResRMS_multiBinning(IF,Args);
     end
 end
 

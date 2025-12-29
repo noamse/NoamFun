@@ -1,0 +1,36 @@
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: Logging started. Log saved to: /home/noamse/matlab/NoamFun/+ml/python/LL_run_WIS-1.log
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: Command line input: /home/noamse/matlab/NoamFun/+ml/python/LL_workflow_ogle.py --run_label oglep --csv /home/noamse/KMT/data/test/AstrometryField_Inspect_A.csv --n_workers 20 --parallel
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: 
+[NEW BLOCK] # ----- Check initial values ----- #
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: Positional arguments:
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    label = WIS-1
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    ra = 270.0
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    dec = -30.0
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: Options:
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    niter = 1000
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    nwalkers = 100
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    mcmc = 0
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    gen = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    plx_par = phi
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    phi_relative = True
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    rescale = True
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    seed = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    Amodel = PM
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    Amodel_gen = PM
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    GOST = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    thetaE = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    phi = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    plot_results = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    aux_phot = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    fix_phi = 0
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    params_CL = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    GDR4 = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    astro_file = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    photo_file = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    useAstro = True
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    usePhoto = True
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    out_path = /home/noamse/matlab/NoamFun/+ml/python
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib:    lum_blends = None
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: DOF number for current initialization: 0
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: [FILE SAVED] DOF number saved in /home/noamse/matlab/NoamFun/+ml/python/dof_WIS-1.txt
+2025-12-25 14:18:39 [INFO] LL_libs.LL_init_lib: Initialization done

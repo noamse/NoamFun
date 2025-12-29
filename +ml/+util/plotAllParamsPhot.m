@@ -1,3 +1,221 @@
+%% Histogram all params from hierarchical JSONs, Opinion==A only
+
+clear; clc;
+
+% --- settings ---
+csvPath  = '/home/noamse/KMT/data/test/AstrometryField_Inspect_A.csv';
+
+% NEW hierarchy root:
+jsonRoot = '/home/noamse/KMT/data/Experiments/Comb_A_v1/photometry_outputs';
+% (change to Comb_blend_all/photometry_outputs if needed)
+
+variantPattern = "params_photo-aux_*std*.json";  % choose std here
+% variantPattern = "params_photo-aux_*best*.json"; % or best
+
+magCut   = 0;   % set [] to disable split by mag0
+
+% ---------- read CSV ----------
+T = readtable(csvPath);
+T_A = T(strcmp(T.Opinion, 'A'), :);
+fprintf('CSV rows with Opinion==A: %d\n', height(T_A));
+
+% ---------- extract event names from CatsPath ----------
+cats = T_A.CatsPath;
+cats = cats(~cellfun(@isempty, cats));
+
+eventNames = strings(size(cats));
+IndTa = nan(size(cats));
+
+for i = 1:numel(cats)
+    p = strip(cats{i});
+    p = regexprep(p, '/+$', '');
+    parts = strsplit(p, '/');
+    eventNames(i) = string(parts{end});
+    IndTa(i) = T_A.EventInd(i);
+end
+
+eventNames = unique(eventNames);
+fprintf('Unique A-events found: %d\n', numel(eventNames));
+disp(eventNames);
+
+% ---------- find event directories under jsonRoot ----------
+evDirsAll = dir(fullfile(jsonRoot, "kmt*"));
+evDirsAll = evDirsAll([evDirsAll.isdir]);
+
+% keep only directories that are in eventNames (Opinion==A)
+isA = ismember(string({evDirsAll.name}), eventNames);
+evDirsA = evDirsAll(isA);
+
+fprintf("Event dirs matching Opinion==A: %d\n", numel(evDirsA));
+if isempty(evDirsA)
+    error("No matching event directories under %s", jsonRoot);
+end
+
+% ---------- collect JSON objects ----------
+objs = {};   % cell of structs
+evKeep = strings(0);
+
+for i = 1:numel(evDirsA)
+    ev = string(evDirsA(i).name);
+    evDir = fullfile(evDirsA(i).folder, evDirsA(i).name);
+
+    jfiles = dir(fullfile(evDir, variantPattern));
+    if isempty(jfiles)
+        fprintf("⚠️  No JSON matching %s in %s\n", variantPattern, evDir);
+        continue;
+    end
+
+    % pick first match (or newest if multiple)
+    jf = fullfile(jfiles(1).folder, jfiles(1).name);
+
+    try
+        obj = jsondecode(fileread(jf));
+        objs{end+1} = obj; %#ok<SAGROW>
+        evKeep(end+1) = ev; %#ok<SAGROW>
+    catch ME
+        warning("Failed reading %s: %s", jf, ME.message);
+    end
+end
+
+if isempty(objs)
+    error("No usable JSONs collected.");
+end
+
+% ---------- build numeric parameter matrix ----------
+paramNames = fieldnames(objs{1});
+
+n = numel(objs);
+params = struct();
+for k = 1:numel(paramNames)
+    params.(paramNames{k}) = nan(n,1);
+end
+
+for i = 1:n
+    obj = objs{i};
+    for k = 1:numel(paramNames)
+        name = paramNames{k};
+        if isfield(obj, name)
+            val = obj.(name);
+            if isnumeric(val) && isscalar(val)
+                params.(name)(i) = val;
+            end
+        end
+    end
+end
+
+% keep only numeric parameters with any finite values
+keepParam = false(size(paramNames));
+for k = 1:numel(paramNames)
+    keepParam(k) = any(~isnan(params.(paramNames{k})));
+end
+paramNames = paramNames(keepParam);
+
+X = nan(n, numel(paramNames));
+for k = 1:numel(paramNames)
+    X(:,k) = params.(paramNames{k});
+end
+
+goodRows = all(~isnan(X),2);
+X = X(goodRows,:);
+fprintf('Final usable events: %d\n', size(X,1));
+
+% ---------- plotting ----------
+if isempty(magCut)
+    plot_histograms(X, paramNames);
+    corner_plot(X, paramNames, sprintf('Corner plot Opinion==A (N=%d)', size(X,1)));
+else
+    mag0_idx = find(strcmp(paramNames,'mag0'),1);
+    if isempty(mag0_idx)
+        error('mag0 not present in params; cannot split by mag.');
+    end
+
+    mag0 = X(:,mag0_idx);
+    isBright = mag0 < magCut;
+    isFaint  = mag0 >= magCut;
+
+    plot_split_histograms(X, paramNames, isBright, isFaint, magCut);
+
+    if any(isBright)
+        corner_plot(X(isBright,:), paramNames, ...
+            sprintf('Corner Opinion==A | mag0<%.1f (N=%d)', magCut, sum(isBright)));
+    end
+    if any(isFaint)
+        corner_plot(X(isFaint,:), paramNames, ...
+            sprintf('Corner Opinion==A | mag0>=%.1f (N=%d)', magCut, sum(isFaint)));
+    end
+end
+
+
+% ===== helper plots =====
+function plot_histograms(X, labels)
+    nParams = numel(labels);
+    nCols = 3; nRows = ceil(nParams/nCols);
+    figure('Color','w','Name','Histograms Opinion==A');
+    tiledlayout(nRows,nCols,'Padding','compact','TileSpacing','compact');
+
+    for k = 1:nParams
+        nexttile;
+        histogram(X(:,k), 'BinMethod','fd');
+        xlabel(labels{k},'Interpreter','none');
+        ylabel('Count'); grid on;
+        title(labels{k},'Interpreter','none');
+    end
+end
+
+function plot_split_histograms(X, labels, isBright, isFaint, magCut)
+    nParams = numel(labels);
+    nCols = 3; nRows = ceil(nParams/nCols);
+    figure('Color','w','Name','Split histograms Opinion==A');
+    tiledlayout(nRows,nCols,'Padding','compact','TileSpacing','compact');
+
+    for k = 1:nParams
+        dataBright = X(isBright,k);
+        dataFaint  = X(isFaint,k);
+        nexttile; hold on;
+        if ~isempty(dataBright)
+            histogram(dataBright,'BinMethod','fd','DisplayStyle','stairs','LineWidth',1.5);
+        end
+        if ~isempty(dataFaint)
+            histogram(dataFaint,'BinMethod','fd','DisplayStyle','stairs','LineWidth',1.5);
+        end
+        hold off; grid on;
+        xlabel(labels{k},'Interpreter','none'); ylabel('Count');
+        title(labels{k},'Interpreter','none');
+        legend({sprintf('mag0<%.1f (N=%d)',magCut,numel(dataBright)), ...
+                sprintf('mag0>=%.1f (N=%d)',magCut,numel(dataFaint))}, ...
+                'Location','best','Box','off');
+    end
+end
+
+function corner_plot(X, labels, figTitle)
+    [~,D] = size(X);
+    figure('Color','w','Name',figTitle);
+    tiledlayout(D,D,'Padding','compact','TileSpacing','compact');
+
+    for i = 1:D
+        for j = 1:D
+            nexttile;
+            if i==j
+                histogram(X(:,i),'BinMethod','fd');
+            elseif i>j
+                scatter(X(:,j),X(:,i),8,'filled'); grid on;
+            else
+                axis off; continue;
+            end
+
+            if i==D, xlabel(labels{j},'Interpreter','none');
+            else, set(gca,'XTickLabel',[]); end
+
+            if j==1 && i>1, ylabel(labels{i},'Interpreter','none');
+            else, if i~=j, set(gca,'YTickLabel',[]); end, end
+        end
+    end
+    sgtitle(figTitle,'Interpreter','none');
+end
+
+
+
+%{
 %% Histogram all params from *_best.json, split by mag0 < 17
 
 % --- settings ---
@@ -320,3 +538,4 @@ title('Distribution of \Delta\chi^2');
 % Print quick summary
 fprintf('Median Δchi2: %.3f\n', median(dchi2,'omitnan'));
 fprintf('Fraction improved (Δchi2 < 0): %.3f\n', mean(dchi2 < 0,'omitnan'));
+%}
