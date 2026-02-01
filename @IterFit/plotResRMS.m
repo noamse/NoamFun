@@ -26,6 +26,8 @@ M = IF.medianFieldSource({'MAG_PSF'});
 Rstd2D = sqrt(RStdPrcX.^2 + RStdPrcY.^2);
 
 OutLiersRMSvsMag = ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',0.5);
+
+%OutLiersRMSvsMag = ml.util.OutliersDetectionCustum(Rstd2D, M,'SigmaThresh',2);
 if (Args.closeall)
     close all;
 end

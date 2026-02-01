@@ -5,6 +5,7 @@ arguments
     CatsPath {mustBeNonzeroLengthText};
     Args.AddPMModel = true;
     Args.MaxMag = 18.5;
+    Args.MinMag = 14;
 end
 
 %AddPMModel= true;
@@ -17,9 +18,11 @@ Rstd2D = sqrt(RstdX.^2 + RstdY.^2);
 %flag = Rstd2D<30;
 %flag = ContRatio<0.1 & MinDistance'>prctile(MinDistance',40);
 M = IFKris.medianFieldSource({'MAG_PSF'});
-[IsOutlierMoving]  =ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',1);
+%[OutLiersRMSvsMag]  =ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',1);
+[OutLiersRMSvsMag] = ml.util.detectOutliers_DualStage(Rstd2D,M,'Tightness',3);
+
 IndEv = IFKris.findClosestSource([150,150]);
-flag = ~IsOutlierMoving & M<Args.MaxMag;
+flag = ~OutLiersRMSvsMag & M<Args.MaxMag & M>Args.MinMag;
 flag(IndEv)=true;
 IndSrc = (1:IFKris.Nsrc)';
 
