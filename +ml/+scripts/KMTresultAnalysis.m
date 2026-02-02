@@ -2,7 +2,7 @@
 clear; clc; close all;
 
 % --- Paths ---
-ExperimentStr = 'ogleANewOut';
+ExperimentStr = 'ogleABelt';
 ExpRoot = "/data4/KMT/data/Experiments/" + ExperimentStr;
 CollectedDir = fullfile(ExpRoot, "collected_results");
 PlotDirDest  = "/home/noamse/astro/KMT_ML/data/KMTNet/Experiments/" + ExperimentStr;
