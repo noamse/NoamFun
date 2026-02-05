@@ -14,7 +14,7 @@ import sys
 # --- CONFIGURATION (Adjust these to match your setup) ---
 
 # 1. Experiment Details
-ExpName = "ogleAprior"
+ExpName = "ogleABelt"
 Experiment_Root = Path("/data4/KMT/data/Experiments") / ExpName
 CSV_PATH = Path("/home/noamse/KMT/data/test/AstrometryField_Inspect_A.csv")
 

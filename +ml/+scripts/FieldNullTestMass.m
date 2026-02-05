@@ -5,7 +5,7 @@ clear; clc; close all;
 FsThreshold = 0.9;   
 
 % --- Paths ---
-ExperimentStr = 'ogleANewOut';
+ExperimentStr = 'ogleABelt';
 ExpRoot = "/data4/KMT/data/Experiments/" + ExperimentStr;
 CollectedDir = fullfile(ExpRoot, "collected_results");
 PlotDirDest  = "/home/noamse/astro/KMT_ML/data/KMTNet/Experiments/" + ExperimentStr;
@@ -99,23 +99,33 @@ for k = 1:numel(eventDirs)
     Sample_ThE   = ThetaECol(mask_sample);
     Sample_DChi2 = DChi2Col(mask_sample);
     
-    if sum(mask_sample) < 10, continue; end
+    nSources = sum(mask_sample); % Count sources
+    if nSources < 10, continue; end
     
-    % Calc Stats
+    % Calc Stats (99% AND 95%)
     Prc_DChi2  = (sum(Sample_DChi2 < Tgt_DChi2) / sum(mask_sample)) * 100;
+    
     Limit_99_ThE = prctile(Sample_ThE, 99);
+    Limit_95_ThE = prctile(Sample_ThE, 95); 
+    
     Limit_99_DChi2 = prctile(Sample_DChi2, 99);
+    Limit_95_DChi2 = prctile(Sample_DChi2, 95); 
     
     % Store
     newRow = table();
     newRow.Event      = evName;
     newRow.fs         = target_fs;
     newRow.TargetMag  = Tgt_Mag;
+    newRow.NumSources = nSources; % Store Count
+    
     newRow.Tgt_DChi2  = Tgt_DChi2;
     newRow.Prc_DChi2  = Prc_DChi2;
     newRow.Field_99_DChi2 = Limit_99_DChi2;
+    newRow.Field_95_DChi2 = Limit_95_DChi2;
+    
     newRow.Tgt_ThetaE = Tgt_ThE;
     newRow.Field_99_ThE = Limit_99_ThE;
+    newRow.Field_95_ThE = Limit_95_ThE;
     
     Tstats = [Tstats; newRow];
     matchedCount = matchedCount + 1;
@@ -138,15 +148,14 @@ fprintf("Done. Check folders:\n  %s\n  %s\n", OutDirFull, OutDirClean);
 
 
 % -------------------------------------------------------------------------
-%  LOCAL FUNCTION: Plotting Logic (Latex $$ Support + Full/Empty Markers)
+%  LOCAL FUNCTION: Plotting Logic
 % -------------------------------------------------------------------------
 function plot_population(T, OutDir, FsThresh, showBlended)
 
-    % Identify Quality Groups (Color: Blue vs Red)
+    % Identify Quality Groups
     if showBlended
         maskHigh = T.fs > FsThresh;
         maskLow  = T.fs <= FsThresh | isnan(T.fs);
-        % Updated to use $$ for latex interpreter
         lblHigh = sprintf('High Quality ($$f_s > %.1f$$)', FsThresh);
         lblLow  = sprintf('Blended ($$f_s \\leq %.1f$$)', FsThresh);
     else
@@ -157,7 +166,7 @@ function plot_population(T, OutDir, FsThresh, showBlended)
     end
 
     % --- PLOT 1: Significance (Percentile vs DeltaChi2) ---
-    fig1 = figure('Color','w', 'Position', [100 100 800 600]); hold on;
+    fig1 = figure('Color','w', 'Position', [100 100 900 600]); hold on;
     if any(maskLow)
         scatter(T.Tgt_DChi2(maskLow), T.Prc_DChi2(maskLow), 50, ...
             'filled', 'MarkerFaceColor', [0.8 0.4 0.4], 'MarkerEdgeColor','none', ...
@@ -168,7 +177,7 @@ function plot_population(T, OutDir, FsThresh, showBlended)
             'filled', 'MarkerFaceColor', 'b', 'MarkerEdgeColor','k', ...
             'DisplayName', lblHigh);
     end
-    yline(95, '--r', '95\%'); % Escaped % for latex safety if needed
+    yline(95, '--r', '95\%'); 
     yline(99, '-r', '99\%');
     
     xlabel('Target $$\Delta\chi^2$$', 'FontSize', 12);
@@ -182,7 +191,7 @@ function plot_population(T, OutDir, FsThresh, showBlended)
     close(fig1);
 
     % --- PLOT 3: ThetaE vs Percentile ---
-    fig3 = figure('Color','w', 'Position', [100 100 800 600]); hold on;
+    fig3 = figure('Color','w', 'Position', [100 100 900 600]); hold on;
     if any(maskLow)
         scatter(T.Tgt_ThetaE(maskLow), T.Prc_DChi2(maskLow), 60, [0.8 0.4 0.4], ...
             'filled', 'MarkerFaceAlpha', 0.6, 'DisplayName', lblLow);
@@ -191,6 +200,7 @@ function plot_population(T, OutDir, FsThresh, showBlended)
         scatter(T.Tgt_ThetaE(maskHigh), T.Prc_DChi2(maskHigh), 60, 'b', ...
             'filled', 'MarkerEdgeColor','k', 'DisplayName', lblHigh);
     end
+    yline(95, '--r', '95\%');
     yline(99, '-r', '99\%');
     
     xlabel('Fitted $$\theta_E$$ [mas]', 'FontSize', 12);
@@ -202,7 +212,7 @@ function plot_population(T, OutDir, FsThresh, showBlended)
     exportgraphics(fig3, fullfile(OutDir, "Pop_Percentile_vs_ThetaE.pdf"), 'ContentType', 'vector');
     close(fig3);
 
-    % --- PLOT 4: Limits Per Field (Visual Distinction) ---
+    % --- PLOT 4: Limits Per Field (Split Plot with SAFER Margins) ---
     T = sortrows(T, 'TargetMag');
     if showBlended
         maskHigh = T.fs > FsThresh;
@@ -213,48 +223,46 @@ function plot_population(T, OutDir, FsThresh, showBlended)
     end
     
     x_idx = 1:height(T);
-    fig4 = figure('Color','w', 'Position', [100, 100, 1200, 600]); 
+    fig4 = figure('Color','w', 'Position', [100, 100, 1200, 800]); 
     
+    % MARGINS CONFIGURATION:
+    % Left = 0.15 (Space for Left Y-Label)
+    % Width = 0.70 (Leaves 0.15 on the right for Right Y-Label)
+    
+    % Subplot 1: Theta E Limits (Top)
+    subplot('Position', [0.15 0.40 0.70 0.52]); 
     yyaxis left
     hold on;
-    y_floor = 8e-1; 
+    y_floor = 0.5; % <--- CHANGED TO 0.5 as requested
     
     % Plot Noise Bars
     for i = 1:height(T)
         plot([i, i], [y_floor, T.Field_99_ThE(i)], '-', 'Color', [0.9 0.9 0.9], 'LineWidth', 4, 'HandleVisibility','off');
+        plot([i-0.3, i+0.3], [T.Field_95_ThE(i), T.Field_95_ThE(i)], '-', 'Color', [0.7 0.7 0.7], 'LineWidth', 1, 'HandleVisibility','off');
     end
-    plot(x_idx, T.Field_99_ThE, '-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1, 'DisplayName', '99\% Noise Limit');
+    p99 = plot(x_idx, T.Field_99_ThE, '-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'DisplayName', '99\% Noise Limit');
+    p95 = plot(x_idx, T.Field_95_ThE, '--', 'Color', [0.6 0.6 0.6], 'LineWidth', 1.0, 'DisplayName', '95\% Noise Limit');
     
-    % --- LOGIC FOR MARKERS ---
-    % 1. Position Filter: Must be above the ThetaE Limit to be colored
+    % --- Markers Logic ---
     is_AboveNoise = T.Tgt_ThetaE > T.Field_99_ThE;
-    
-    % 2. Shape Filter: Filled if DChi2 is significant, Empty if not
     is_Robust = T.Tgt_DChi2 > T.Field_99_DChi2;
     
-    % GROUP 1: Robust High Quality (Blue Filled)
     idx_BlueFilled = is_AboveNoise & is_Robust & maskHigh;
     if any(idx_BlueFilled)
         scatter(x_idx(idx_BlueFilled), T.Tgt_ThetaE(idx_BlueFilled), 100, 'b', ...
             'filled', 'MarkerEdgeColor', 'k', 'DisplayName', 'Robust Detection');
     end
-    
-    % GROUP 2: Marginal High Quality (Blue Empty)
     idx_BlueEmpty = is_AboveNoise & ~is_Robust & maskHigh;
     if any(idx_BlueEmpty)
         scatter(x_idx(idx_BlueEmpty), T.Tgt_ThetaE(idx_BlueEmpty), 100, 'w', ...
             'MarkerEdgeColor', 'b', 'LineWidth', 1.5, 'DisplayName', 'Marginal Detection');
     end
-    
-    % GROUP 3: Robust Blended (Red Filled)
     if showBlended
         idx_RedFilled = is_AboveNoise & is_Robust & maskLow;
         if any(idx_RedFilled)
             scatter(x_idx(idx_RedFilled), T.Tgt_ThetaE(idx_RedFilled), 100, 'r', ...
                 'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceAlpha', 0.7, 'DisplayName', 'Robust Artifact');
         end
-        
-        % GROUP 4: Marginal Blended (Red Empty)
         idx_RedEmpty = is_AboveNoise & ~is_Robust & maskLow;
         if any(idx_RedEmpty)
             scatter(x_idx(idx_RedEmpty), T.Tgt_ThetaE(idx_RedEmpty), 100, 'w', ...
@@ -262,81 +270,69 @@ function plot_population(T, OutDir, FsThresh, showBlended)
         end
     end
     
-    % GROUP 5: Below Noise (Small Dots)
+    % --- CHANGED: Bigger & Darker "Below Noise" Points ---
     idx_Below = ~is_AboveNoise;
     if any(idx_Below)
-        scatter(x_idx(idx_Below), T.Tgt_ThetaE(idx_Below), 20, 'k', ...
-            'filled', 'MarkerFaceAlpha', 0.2, 'DisplayName', 'Below Noise');
+        scatter(x_idx(idx_Below), T.Tgt_ThetaE(idx_Below), 50, [0.3 0.3 0.3], ...
+            'filled', 'MarkerFaceAlpha', 0.5, 'DisplayName', 'Below Noise');
     end
     
-    % Setup Left Axis
-    set(gca, 'YScale', 'log', 'FontSize', 12, 'YColor', 'k');
+    set(gca, 'YScale', 'log', 'FontSize', 12, 'YColor', 'k', 'XTickLabel', []);
     ylabel('Fitted $$\theta_E$$ [mas]', 'FontSize', 12);
-    xlabel('Events (Sorted by Brightness)', 'FontSize', 12);
     xlim([0, height(T)+1]);
-    
     current_ylim = [y_floor, max([T.Field_99_ThE; T.Tgt_ThetaE]) * 1.5];
     ylim(current_ylim);
-    
-    % --- RIGHT AXIS (MASS) ---
+    title('Astrometric Sensitivity per Field', 'FontSize', 14);
+    legend([p99, p95], 'Location', 'northwest');
+    grid on;
+
+    % Right Axis (Mass)
     yyaxis right
     kappa = 8.144; Ds = 8.0; Dl_ref = 4.0; pi_rel = (1/Dl_ref - 1/Ds);
     M_min = (current_ylim(1)^2) / (kappa * pi_rel);
     M_max = (current_ylim(2)^2) / (kappa * pi_rel);
-    
     set(gca, 'YScale', 'log', 'FontSize', 12, 'YColor', [0.4 0.4 0.4]);
     ylim([M_min, M_max]);
+    ylabel(sprintf('Mass ($$D_L$$=%.0fkpc) [$$M_\\odot$$]', Dl_ref), 'FontSize', 12);
     
-    % Updated label with $$ and escaped backslashes for sprintf
-    ylabel(sprintf('Approx. Mass ($$D_L$$=%.0fkpc) [$$M_\\odot$$]', Dl_ref), 'FontSize', 12);
-    
-    title('Astrometric Sensitivity per Field', 'FontSize', 14);
-    legend('Location', 'best');
+    % Subplot 2: Number of Sources (Bottom)
+    % Position: Left=0.15, Bottom=0.10, Width=0.70, Height=0.20
+    subplot('Position', [0.15 0.10 0.70 0.20]); 
+    bar(x_idx, T.NumSources, 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none');
+    xlim([0, height(T)+1]);
+    ylabel('# Sources', 'FontSize', 12);
+    xlabel('Events (Sorted by Brightness)', 'FontSize', 12);
+    set(gca, 'FontSize', 12);
     grid on;
     
     exportgraphics(fig4, fullfile(OutDir, "Pop_ThetaE_Limits_per_Field_Log.pdf"), 'ContentType', 'vector');
     close(fig4);
     
     % --- PLOT 5: Sensitivity Curve (ThetaE) ---
-    fig5 = figure('Color','w', 'Position', [100 100 800 600]); hold on;
-    scatter(T.TargetMag, T.Field_99_ThE, 60, [0.4 0.4 0.4], 'filled', 'MarkerFaceAlpha', 0.5);
+    fig5 = figure('Color','w', 'Position', [100 100 900 600]); hold on;
     
+    % Plot 99
+    scatter(T.TargetMag, T.Field_99_ThE, 30, [0.4 0.4 0.4], 'filled', 'MarkerFaceAlpha', 0.3);
     [sortedMags, sortIdx] = sort(T.TargetMag);
+    
+    % Plot 95
+    scatter(T.TargetMag, T.Field_95_ThE, 30, [0.6 0.6 0.6], 'filled', 'MarkerFaceAlpha', 0.3, 'HandleVisibility','off');
+
     try
-        smoothLimit = smoothdata(T.Field_99_ThE(sortIdx), 'gaussian', 10);
-        plot(sortedMags, smoothLimit, 'r-', 'LineWidth', 3, 'DisplayName', 'Trend');
+        smoothLimit99 = smoothdata(T.Field_99_ThE(sortIdx), 'gaussian', 10);
+        smoothLimit95 = smoothdata(T.Field_95_ThE(sortIdx), 'gaussian', 10);
+        plot(sortedMags, smoothLimit99, 'r-', 'LineWidth', 2, 'DisplayName', '99\% Limit');
+        plot(sortedMags, smoothLimit95, 'r--', 'LineWidth', 1.5, 'DisplayName', '95\% Limit');
     catch
-        smoothLimit = T.Field_99_ThE(sortIdx);
-        plot(sortedMags, smoothLimit, 'r-', 'LineWidth', 1, 'DisplayName', 'Trend');
+        plot(sortedMags, T.Field_99_ThE(sortIdx), 'r-', 'LineWidth', 1);
     end
     
     set(gca, 'YScale', 'log', 'FontSize', 12);
     xlabel('Target Magnitude (I)', 'FontSize', 12);
-    ylabel('99\% Sensitivity Limit on $$\theta_E$$ [mas]', 'FontSize', 12);
+    ylabel('Sensitivity Limit on $$\theta_E$$ [mas]', 'FontSize', 12);
     title('Astrometric Precision vs Magnitude', 'FontSize', 14);
-    grid on;
+    grid on; legend('Location','best');
     exportgraphics(fig5, fullfile(OutDir, "Pop_Sensitivity_vs_Mag_Log.pdf"), 'ContentType', 'vector');
     close(fig5);
-
-    % --- PLOT 6: MASS SENSITIVITY LIMITS ---
-    kappa = 8.144; Ds = 8.0; DL_vec = [1, 4, 6]; colors = {'b', 'g', 'm'};
-    
-    fig6 = figure('Color','w', 'Position', [100 100 800 600]); hold on;
-    for i = 1:length(DL_vec)
-        Dl = DL_vec(i);
-        pi_rel = (1/Dl - 1/Ds);
-        Mass_Limit = (smoothLimit.^2) ./ (kappa * pi_rel);
-        plot(sortedMags, Mass_Limit, 'LineWidth', 2.5, ...
-            'Color', colors{i}, 'DisplayName', sprintf('Lens at %.0f kpc', Dl));
-    end
-    set(gca, 'YScale', 'log', 'FontSize', 12);
-    xlabel('Target Magnitude (I)', 'FontSize', 12);
-    ylabel('Minimum Detectable Mass [$$M_\odot$$]', 'FontSize', 12);
-    title('Mass Detection Sensitivity', 'FontSize', 14);
-    grid on;
-    legend('Location', 'best');
-    ylim([min(Mass_Limit)*0.5, max(Mass_Limit)*2]); 
-    exportgraphics(fig6, fullfile(OutDir, "Pop_Sensitivity_Mass_Log.pdf"), 'ContentType', 'vector');
-    close(fig6);
 
 end

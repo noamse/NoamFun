@@ -7,6 +7,7 @@ arguments
     Args.Plot2D = false;
     Args.PlotCorr= true;    
     Args.XYtogether =false;
+    Args.CoreBelt= false;
 end
 % [Rx,Ry] = IF.calculateResiduals;
 % Wes=  IF.calculateWes;
@@ -25,7 +26,11 @@ end
 M = IF.medianFieldSource({'MAG_PSF'});
 Rstd2D = sqrt(RStdPrcX.^2 + RStdPrcY.^2);
 
-OutLiersRMSvsMag = ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',0.5);
+if Args.CoreBelt
+    [OutLiersRMSvsMag] = ml.util.detectOutliers_DualStage(Rstd2D,M,'Tightness',3);
+else
+    OutLiersRMSvsMag = ml.util.iterativeOutlierDetection(Rstd2D,M,10,'MoveMedianStep',0.5);
+end
 
 %OutLiersRMSvsMag = ml.util.OutliersDetectionCustum(Rstd2D, M,'SigmaThresh',2);
 if (Args.closeall)
