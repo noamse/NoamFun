@@ -320,31 +320,37 @@ def main(event_num, field, EventInd, exp_root, out_dir=None, ogle_root=None, use
     # =========================================================================
     fig, ax = plt.subplots(3, 1, sharex=True, figsize=(8, 9), gridspec_kw={"hspace": 0.05})
 
-    ax[0].plot(tA, NA, '.', color='C0', alpha=0.15, markeredgewidth=0, label='raw')
+    ax[0].plot(tA, NA, '.', color='C0', alpha=0.05, markeredgewidth=0, label='raw', rasterized=True)
     if tb_N.size: ax[0].errorbar(tb_N, Nb_med, yerr=Nb_err, fmt='o', ms=5, color='k', mfc='C0', ecolor='k', elinewidth=1.5, capsize=2)
     ax[0].plot(tm_A, mod_N_full, '-', color='C0', alpha=0.8, linewidth=2, label='Full Model')
     ax[0].plot(tm_A, mod_N_base, '--', color='gray', alpha=0.6, linewidth=1.2, label='Background')
-    ax[0].set_ylabel('N [mas]'); ax[0].legend(fontsize=9); ax[0].grid(True, alpha=0.3)
+    ax[0].set_ylabel('N [mas]')
+    ax[0].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0, fontsize=9)
+    ax[0].grid(True, alpha=0.3)
 
-    ax[1].plot(tA, EA, '.', color='C1', alpha=0.15, markeredgewidth=0, label='raw')
+    ax[1].plot(tA, EA, '.', color='C1', alpha=0.05, markeredgewidth=0, label='raw', rasterized=True)
     if tb_E.size: ax[1].errorbar(tb_E, Eb_med, yerr=Eb_err, fmt='o', ms=5, color='k', mfc='C1', ecolor='k', elinewidth=1.5, capsize=2)
     ax[1].plot(tm_A, mod_E_full, '-', color='C1', alpha=0.8, linewidth=2, label='Full Model')
     ax[1].plot(tm_A, mod_E_base, '--', color='gray', alpha=0.6, linewidth=1.2, label='Background')
-    ax[1].set_ylabel('E [mas]'); ax[1].legend(fontsize=9); ax[1].grid(True, alpha=0.3)
+    ax[1].set_ylabel('E [mas]')
+    ax[1].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0, fontsize=9)
+    ax[1].grid(True, alpha=0.3)
 
-    ax[2].errorbar(tP, magP, yerr=sigP, fmt='.', color='k', ms=3, capsize=0, alpha=0.3, label='phot raw')
+    ax[2].errorbar(tP, magP, yerr=sigP, fmt='.', color='k', ms=3, capsize=0, alpha=0.1, label='phot raw', rasterized=True)
     ax[2].plot(tm_P, mod_mag, '-', color='r', alpha=0.8, linewidth=1.5, label='Model')
-    ax[2].invert_yaxis(); ax[2].set_ylabel('mag'); ax[2].set_xlabel('JD'); ax[2].legend(fontsize=9); ax[2].grid(True, alpha=0.3)
+    ax[2].invert_yaxis(); ax[2].set_ylabel('mag'); ax[2].set_xlabel('JD')
+    ax[2].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0, fontsize=9)
+    ax[2].grid(True, alpha=0.3)
 
     if len(NA) > 0:
         med_N = np.nanmedian(NA); ax[0].set_ylim(med_N - 50.0, med_N + 50.0)
     if len(EA) > 0:
         med_E = np.nanmedian(EA); ax[1].set_ylim(med_E - 50.0, med_E + 50.0)
 
-    fig.suptitle(f"{event_name}  EventInd={EventInd}", fontsize=12, y=0.98)
-    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    #fig.suptitle(f"{event_name}  EventInd={EventInd}", fontsize=12, y=0.98)
+    fig.tight_layout(rect=[0, 0, 0.82, 0.97])
     tag = f"{event_name}_E{EventInd}_3panel_WIS-2"
-    fig.savefig(out_path / f"{tag}.png", dpi=200)
+    fig.savefig(out_path / f"{tag}.pdf", format='pdf', dpi=600)
     save_mpl_fig(fig, out_path, tag)
     plt.close(fig)
 
@@ -357,37 +363,38 @@ def main(event_num, field, EventInd, exp_root, out_dir=None, ogle_root=None, use
     tb_E_res, Eb_res_med, Eb_res_err, _ = bin_by_days_robust(tA, diff_E, bin_days=10.0)
     
     _, data_arr_P_pts, _, _ = LLaux.gen_from_input(md_phot, tP, tP)
-    res_P = magP - data_arr_P_pts[:, 1]
-
+    
     fig_res, ax_res = plt.subplots(3, 1, sharex=True, figsize=(8, 9), gridspec_kw={"hspace": 0.05})
 
-    # Add Parameter Text Box to first panel (TOP LEFT)
-    ax_res[0].text(0.02, 0.95, param_txt, transform=ax_res[0].transAxes, fontsize=8,
-                   verticalalignment='top', horizontalalignment='left',
+    # MOVED: Param text to ax_res[2] (Right side)
+    ax_res[2].text(0.98, 0.95, param_txt, transform=ax_res[2].transAxes, fontsize=8,
+                   verticalalignment='top', horizontalalignment='right',
                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
     ax_res[0].axhline(0, color='gray', linestyle='--', linewidth=1)
-    ax_res[0].plot(tA, diff_N, '.', color='C0', alpha=0.15, markeredgewidth=0)
+    ax_res[0].plot(tA, diff_N, '.', color='C0', alpha=0.05, markeredgewidth=0, rasterized=True)
     if tb_N_res.size: ax_res[0].errorbar(tb_N_res, Nb_res_med, yerr=Nb_res_err, fmt='o', ms=5, color='k', mfc='C0', ecolor='k', elinewidth=1.5, capsize=2)
     ax_res[0].plot(tm_A, sig_N_smooth, 'k-', lw=2.0, alpha=0.8, label='Signal')
     ax_res[0].set_ylabel(r'$\Delta N_{ML}$ [mas]'); ax_res[0].grid(True, alpha=0.3)
 
     ax_res[1].axhline(0, color='gray', linestyle='--', linewidth=1)
-    ax_res[1].plot(tA, diff_E, '.', color='C1', alpha=0.15, markeredgewidth=0)
+    ax_res[1].plot(tA, diff_E, '.', color='C1', alpha=0.05, markeredgewidth=0, rasterized=True)
     if tb_E_res.size: ax_res[1].errorbar(tb_E_res, Eb_res_med, yerr=Eb_res_err, fmt='o', ms=5, color='k', mfc='C1', ecolor='k', elinewidth=1.5, capsize=2)
     ax_res[1].plot(tm_A, sig_E_smooth, 'k-', lw=2.0, alpha=0.8, label='Signal')
     ax_res[1].set_ylabel(r'$\Delta E_{ML}$ [mas]'); ax_res[1].grid(True, alpha=0.3)
 
-    ax_res[2].errorbar(tP, res_P, yerr=sigP, fmt='.', color='k', ms=3, alpha=0.15)
-    ax_res[2].axhline(0, color='r', linestyle='--', alpha=0.5)
-    ax_res[2].set_ylabel(r'Res Mag'); ax_res[2].set_xlabel('JD'); ax_res[2].grid(True, alpha=0.3)
+    # Panel 3: LIGHT CURVE
+    ax_res[2].errorbar(tP, magP, yerr=sigP, fmt='.', color='k', ms=3, alpha=0.1, rasterized=True)
+    ax_res[2].plot(tm_P, mod_mag, 'r-', lw=1.5, alpha=0.8)
+    ax_res[2].invert_yaxis()
+    ax_res[2].set_ylabel(r'Mag'); ax_res[2].set_xlabel('JD'); ax_res[2].grid(True, alpha=0.3)
     
-    ax_res[0].set_ylim(-25, 25); ax_res[1].set_ylim(-25, 25)
+    ax_res[0].set_ylim(-35, 35); ax_res[1].set_ylim(-35, 35)
 
-    fig_res.suptitle(f"{event_name} Astrometric Deviation (Signal)", fontsize=12, y=0.98)
+    #fig_res.suptitle(f"{event_name} Astrometric Deviation (Signal)", fontsize=12, y=0.98)
     fig_res.tight_layout(rect=[0, 0, 1, 0.97])
     tag_res = f"{event_name}_E{EventInd}_AstroSignal"
-    fig_res.savefig(out_path / f"{tag_res}.png", dpi=200)
+    fig_res.savefig(out_path / f"{tag_res}.pdf", format='pdf', dpi=600)
     plt.close(fig_res)
 
     # =========================================================================
@@ -398,39 +405,42 @@ def main(event_num, field, EventInd, exp_root, out_dir=None, ogle_root=None, use
         if t0 is not None and tE is not None and tE > 0:
             fig_zres, ax_zres = plt.subplots(3, 1, sharex=True, figsize=(8, 9), gridspec_kw={"hspace": 0.05})
             
-            # Add Parameter Text Box to Zoom plot (TOP LEFT)
-            ax_zres[0].text(0.02, 0.95, param_txt, transform=ax_zres[0].transAxes, fontsize=8,
-                            verticalalignment='top', horizontalalignment='left',
+            # MOVED: Param text to ax_zres[2] (Right side)
+            ax_zres[2].text(0.98, 0.95, param_txt, transform=ax_zres[2].transAxes, fontsize=8,
+                            verticalalignment='top', horizontalalignment='right',
                             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
             ax_zres[0].axhline(0, color='gray', linestyle='--', linewidth=1)
-            ax_zres[0].plot(tA, diff_N, '.', color='C0', alpha=0.2, markeredgewidth=0)
+            ax_zres[0].plot(tA, diff_N, '.', color='C0', alpha=0.1, markeredgewidth=0, rasterized=True)
             if tb_N_res.size: ax_zres[0].errorbar(tb_N_res, Nb_res_med, yerr=Nb_res_err, fmt='o', ms=5, color='k', mfc='C0', ecolor='k', elinewidth=1.5, capsize=2)
             ax_zres[0].plot(tm_A, sig_N_smooth, 'k-', lw=2.5, alpha=0.8)
             ax_zres[0].set_ylabel(r'$\Delta N_{ML}$ [mas]'); ax_zres[0].grid(True, alpha=0.3)
 
             ax_zres[1].axhline(0, color='gray', linestyle='--', linewidth=1)
-            ax_zres[1].plot(tA, diff_E, '.', color='C1', alpha=0.2, markeredgewidth=0)
+            ax_zres[1].plot(tA, diff_E, '.', color='C1', alpha=0.1, markeredgewidth=0, rasterized=True)
             if tb_E_res.size: ax_zres[1].errorbar(tb_E_res, Eb_res_med, yerr=Eb_res_err, fmt='o', ms=5, color='k', mfc='C1', ecolor='k', elinewidth=1.5, capsize=2)
             ax_zres[1].plot(tm_A, sig_E_smooth, 'k-', lw=2.5, alpha=0.8)
             ax_zres[1].set_ylabel(r'$\Delta E_{ML}$ [mas]'); ax_zres[1].grid(True, alpha=0.3)
 
-            ax_zres[2].errorbar(tP, res_P, yerr=sigP, fmt='.', color='k', ms=3, alpha=0.3)
-            ax_zres[2].axhline(0, color='r', linestyle='--', alpha=0.5)
-            ax_zres[2].set_ylabel(r'Res Mag'); ax_zres[2].set_xlabel('JD'); ax_zres[2].grid(True, alpha=0.3)
+            # Panel 3: LIGHT CURVE
+            ax_zres[2].errorbar(tP, magP, yerr=sigP, fmt='.', color='k', ms=3, alpha=0.1, rasterized=True)
+            ax_zres[2].plot(tm_P, mod_mag, 'r-', lw=2.0, alpha=0.8)
+            ax_zres[2].invert_yaxis()
+            ax_zres[2].set_ylabel(r'Mag'); ax_zres[2].set_xlabel('JD'); ax_zres[2].grid(True, alpha=0.3)
 
             xlim_min = t0 - 2.0 * tE; xlim_max = t0 + 2.0 * tE
             for a in ax_zres: a.set_xlim(xlim_min, xlim_max)
             ax_zres[0].set_ylim(-15, 15); ax_zres[1].set_ylim(-15, 15)
             
+            # Auto-scale Y for zoomed lightcurve (with inversion handling)
             m_phot = (tP >= xlim_min) & (tP <= xlim_max)
             if np.any(m_phot):
-                yw = res_P[m_phot]; mv, sv = np.nanmedian(yw), np.nanstd(yw)
-                ax_zres[2].set_ylim(mv - 3.0*sv, mv + 3.0*sv)
+                yw = magP[m_phot]; mv, sv = np.nanmedian(yw), np.nanstd(yw)
+                ax_zres[2].set_ylim(np.max(yw) + 0.1, np.min(yw) - 0.1) 
 
-            fig_zres.suptitle(f"{event_name} AstroSignal ZOOM (+/- 2tE)", fontsize=12, y=0.98)
+            #fig_zres.suptitle(f"{event_name} AstroSignal ZOOM (+/- 2tE)", fontsize=12, y=0.98)
             fig_zres.tight_layout(rect=[0, 0, 1, 0.97])
-            fig_zres.savefig(out_path / f"{tag_res}_ZOOM.png", dpi=200)
+            fig_zres.savefig(out_path / f"{tag_res}_ZOOM.pdf", format='pdf', dpi=600)
             plt.close(fig_zres)
     except Exception as e:
         print(f"Zoom failed: {e}")
